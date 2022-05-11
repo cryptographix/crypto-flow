@@ -1,7 +1,7 @@
 import {
   IPropertyInfo,
+  IPropertyValues,
   PropertiesOf,
-  PropertyValues,
 } from "../deps.ts";
 
 export abstract class Block {
@@ -9,12 +9,12 @@ export abstract class Block {
    * Setup `Block` using config
    */
   setup(
-    config: PropertyValues
-  ): void | IBlockInfo | Promise<IBlockInfo> {
+    config: IPropertyValues
+  ): void | IPropertyValues | Promise<IPropertyValues> {
     Object.assign(this, config);
   }
 
-  validate( params: PropertyValues ): boolean {
+  validate( params: IPropertyValues ): boolean {
     (params);
 
     return true; 
@@ -25,8 +25,8 @@ export abstract class Block {
    * Returns hash of altered output Ports
    */
   abstract process(
-    params: PropertyValues
-  ): Promise<PropertyValues> | PropertyValues;
+    params: IPropertyValues
+  ): Promise<IPropertyValues> | IPropertyValues | void;
 
   /**
    * Finalize block and release resources
@@ -40,7 +40,7 @@ export abstract class Block {
  * Block Constructor
  */
 export interface IBlockConstructor<BLK extends Block = Block> {
-  new (init: PropertyValues): BLK;
+  new (): BLK;
 
   readonly blockInfo: IBlockInfo<BLK>;
 }

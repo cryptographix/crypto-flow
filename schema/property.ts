@@ -25,6 +25,8 @@ export type IPropertyInfo<T = unknown> = {
   // property is optional .. value CAN be undefined
   optional?: boolean;
 
+  constant?: boolean;
+  
   // default value for property
   default?: T;
 
@@ -130,9 +132,9 @@ export type IPropertyInfo<T = unknown> = {
     }
 );
 
-export type PropertyInfos = Record<string, IPropertyInfo>;
+export type IPropertyInfos = Record<string, IPropertyInfo>;
+export type IPropertyValues = Record<string, PropertyValue>;
 
-export type PropertyValues = Record<string, PropertyValue>;
 export type NoProperties = Record<never, PropertyValue>
 
 /**

@@ -38,7 +38,7 @@ export class Project implements IProject<Graph> {
   getRootFlow(
     mustExist = true
   ): typeof mustExist extends true ? Graph : Graph | undefined {
-    const flow = Object.values(this.flows).find((flow) => flow.type == "root");
+    const flow = Array.from(this.flows.values()).find((flow) => flow.type == "root");
 
     if (!flow && mustExist) {
       throw new Error("");

@@ -12,16 +12,16 @@ export default {
             dataType: "boolean"
           }
         },
-        
+
         nodes: {
           "inverter": {
             type: "code",
             name: "inverter",
             block: {
-              code: "export process = ()=>{\nthis.out = !this.in;\n}"
+              code: "export default function({input}) {\nreturn { out: !input };\n}"
             },
             ports: {
-              "in": {
+              "input": {
                 type: "in",
                 dataType: "boolean",
               },
@@ -31,17 +31,20 @@ export default {
                 links: [
                   {
                     nodeID: "node-2",
-                    portID: "in"
+                    portID: "data"
                   }
                 ]
               },
             },
           },
           "node-2": {
-            type: "output",
+            type: "block",
             name: "out",
+            block: {
+              name: "printer"
+            },
             ports: {
-              "in": {
+              "data": {
                 type: "in",
                 dataType: "boolean",
               },

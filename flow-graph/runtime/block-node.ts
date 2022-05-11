@@ -26,16 +26,21 @@ export class BlockNode {
     return this.#status;
   }
 
+  get context(): BlockContext { if (!this.#blockContext) throw new Error("eka"); return this.#blockContext; }
+
   async loadBlock(): Promise<void> {
     switch (this.node.type) {
       case "block": {
-        this.#blockContext = await BlockContext.fromLoader(this.#loader, this.node.block!.name as string );
+        this.#blockContext = await BlockContext.fromLoader(
+          this.#loader,
+          this.node.block!.name as string
+        );
 
         break;
       }
 
       case "code": {
-        this.#blockContext = BlockContext.fromCode(
+        this.#blockContext = await BlockContext.fromCode(
           this.node.block!.code as string
         );
 
