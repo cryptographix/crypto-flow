@@ -1,6 +1,12 @@
 import { AnyObject, IConstructable, JSONObject } from "./type-helpers.ts";
 
-export type PropertyValue = boolean | number | string | Uint8Array | bigint | AnyObject;
+export type PropertyValue =
+  | boolean
+  | number
+  | string
+  | Uint8Array
+  | bigint
+  | AnyObject;
 
 /**
  *
@@ -22,8 +28,8 @@ export type IPropertyInfo<T = unknown> = {
   // default value for property
   default?: T;
 
-  access?: "in"|"out"| "io",
-   
+  accessors?: "get" | "set" | "both";
+
   // custom to/from JSON converters
   converter?: {
     fromObject(name: string, obj: JSONObject): T;
@@ -31,7 +37,7 @@ export type IPropertyInfo<T = unknown> = {
   };
 
   // custom validator
-  validator?: (value: T) => void;
+  validator?: (value: unknown) => void;
 } & (
   | {
       /**
@@ -95,8 +101,9 @@ export type IPropertyInfo<T = unknown> = {
        * An enumerated type property [value:string] -> [description:string]
        */
       dataType: "enum";
+
       // Hash-map of option values/description
-      options: Record<string, string>;
+      options: Record<string, string> | string[];
     }
   | {
       /**
@@ -109,6 +116,7 @@ export type IPropertyInfo<T = unknown> = {
        * An object
        */
       dataType: IConstructable<T>;
+
       //
       isTree?: boolean;
     }
@@ -122,20 +130,10 @@ export type IPropertyInfo<T = unknown> = {
     }
 );
 
-export type PropertyInfoMap = Record<string, IPropertyInfo>;
+export type PropertyInfos = Record<string, IPropertyInfo>;
 
-export type PropertyMap = Record<string, PropertyValue>;
-
-/**
- * Helper to allow partial schemas
- */
- export type FilterSchemaProps<Base> = {
-  [Key in keyof Base]: Base[Key] extends PropertyValue
-    ? /*Base[Key] extends Function
-      ? never
-      : */ Base[Key]
-    : never;
-};
+export type PropertyValues = Record<string, PropertyValue>;
+export type NoProperties = Record<never, PropertyValue>
 
 /**
  * A schema-enhanced reference to a Property

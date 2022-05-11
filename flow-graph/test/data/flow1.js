@@ -3,7 +3,7 @@ export default {
     title: "invert-bit project",
     flows: {
       "invert-bit": {
-        type: "main",
+        type: "root",
         name: "invert bit",
 
         ports: {

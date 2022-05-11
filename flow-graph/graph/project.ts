@@ -1,5 +1,5 @@
 import { JSONObject } from "../deps.ts";
-import { Graph, GraphType, IGraph } from "../mod.ts";
+import { Graph, IGraph } from "../mod.ts";
 
 export interface IProject<Graph extends IGraph = IGraph> {
   type: string;
@@ -47,26 +47,27 @@ export class Project implements IProject<Graph> {
     return flow;
   }
 
-  createFlow(type: GraphType, title: string): Graph {
+  createFlow(type: "root"|"flow", name: string): Graph {
     if (type == "root" && this.getRootFlow(false)) {
       throw new Error("");
     }
 
     const flow = new Graph(this, {
-      nodeID: "new flow",
+      id: "new flow",
       type,
-      title,
+      name,
+      block: null,
       nodes: new Map(),
       ports: new Map(),
     });
 
-    this.flows.set(flow.nodeID, flow);
+    this.flows.set(flow.id, flow);
 
     return flow;
   }
 
   static parseProject(obj: JSONObject): Project {
-    const { type = "project", title = "", projectID } = obj;
+    const { type = "project", title, projectID } = obj;
 
     const project = new Project({
       type: type as string,
@@ -78,7 +79,7 @@ export class Project implements IProject<Graph> {
     Object.entries(obj.flows ?? {}).reduce((flows, item) => {
       const [id, flow] = item;
 
-      flows.set(id, Graph.parseFlow(project, id, flow));
+      flows.set(id, Graph.parseGraph(project, id, flow));
 
       return flows;
     }, project.flows);
@@ -87,18 +88,18 @@ export class Project implements IProject<Graph> {
   }
 
   toObject(): JSONObject {
-    const { type = "project", projectID, title = "" } = this;
+    const { type = "project", projectID, title } = this;
 
     const flows = Array.from(this.flows).reduce((flows, [flowID, flow]) => {
-      flows[flowID] = (flow as Graph).toObject();
+      flows[flowID] = flow.toObject();
       return flows;
     }, {} as JSONObject);
 
-    return {
+    return JSONObject.removeNullOrUndefined( {
       type,
       projectID,
       title,
       flows,
-    };
+    } );
   }
 }

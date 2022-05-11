@@ -1,5 +1,5 @@
-import { AnyObject, ByteArray, EmptyObject, IConstructable, JSONObject } from "./type-helpers.ts";
-import { IPropertyInfo, PropertyInfoMap, PropertyValue } from "./property.ts";
+import { AnyObject, ByteArray, EmptyObject, IConstructable } from "./type-helpers.ts";
+import { IPropertyInfo, PropertyInfos, PropertyValue } from "./property.ts";
 import { schemaStore } from "./schema-store.ts";
 
 /**
@@ -19,7 +19,7 @@ export interface ISchema {
   namespace?: string;
 
   //
-  properties: PropertyInfoMap;
+  properties: PropertyInfos;
 }
 
 /**

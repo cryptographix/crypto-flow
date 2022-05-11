@@ -24,6 +24,14 @@ export type PropertiesOf<T> = Pick<
   }[keyof T]
 >;
 
+export type PartialPropertiesOf<T> = Partial<Pick<
+  T,
+  {
+    // deno-lint-ignore ban-types
+    [K in keyof T]: T[K] extends Function ? never : K;
+  }[keyof T]
+>>;
+
 export type Nullable<T> = {[K in keyof T]: T[K]|null};
 
 
@@ -51,4 +59,15 @@ export type JSONValue = string | number | boolean | null | JSONObject | JSONValu
 
 export interface JSONObject {
   [x: string]: JSONValue;
+}
+
+export const JSONObject = {
+  removeNullOrUndefined(obj: JSONObject): JSONObject {
+    for( const x in obj ) {
+      if ( obj[x] === undefined || obj[x] === null )
+        delete obj[x];
+    }
+
+    return obj;
+  }
 }

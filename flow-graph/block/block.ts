@@ -1,50 +1,59 @@
-import { IPropertyInfo } from '../deps.ts';
+import {
+  IPropertyInfo,
+  PropertiesOf,
+  PropertyValues,
+} from "../deps.ts";
 
-export interface IBlock {
+export abstract class Block {
   /**
    * Setup `Block` using config
-   *
-   * Returns hash of named input and output Ports
    */
-  setup(initProperties: Partial<ThisType<this>>): void | Promise<void>;
+  setup(
+    config: PropertyValues
+  ): void | IBlockInfo | Promise<IBlockInfo> {
+    Object.assign(this, config);
+  }
 
+  validate( params: PropertyValues ): boolean {
+    (params);
+
+    return true; 
+  }
   /**
    * Process input ports and send results to output ports
    *
    * Returns hash of altered output Ports
    */
-  process(): Promise<Partial<ThisType<this>>>;
+  abstract process(
+    params: PropertyValues
+  ): Promise<PropertyValues> | PropertyValues;
 
   /**
    * Finalize block and release resources
    */
-  teardown?: () => void | Promise<void>;
+  teardown(): void | Promise<void> {
+    // noop
+  }
 }
 
-export type BlockProperties<T extends IBlock> = Pick<
-  T,
-  {
-    // deno-lint-ignore ban-types
-    [K in keyof T]-?: T[K] extends Function ? never : K;
-  }[keyof T]
->;
+/**
+ * Block Constructor
+ */
+export interface IBlockConstructor<BLK extends Block = Block> {
+  new (init: PropertyValues): BLK;
 
-
-export interface IBlockConstructor<Block extends IBlock = IBlock> {
-  /**
-   * Block Constructor
-   */
-  new (): Block;
-
-  readonly blockInfo: IBlockInfo<Block>;
+  readonly blockInfo: IBlockInfo<BLK>;
 }
 
-export interface IBlockInfo<Block extends IBlock> {
+/**
+ * IBlockInfo
+ */
+export interface IBlockInfo<BLK extends Block = Block> {
   name: string;
   category: string;
   namespace?: string;
 
   propInfo: {
-    [K in keyof BlockProperties<Block>]-?: IPropertyInfo<Block[K]>
+    [K in keyof PropertiesOf<BLK>]-?: IPropertyInfo<BLK[K]>;
   };
 }

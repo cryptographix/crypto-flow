@@ -1,4 +1,4 @@
-import { JSONObject, JSONValue } from "../deps.ts";
+import { JSONObject } from "../deps.ts";
 import { Node } from "../mod.ts";
 import { Link, ILink } from "./link.ts";
 
@@ -7,14 +7,14 @@ export type PortType = "none" | "in" | "out";
 export interface IPort {
   type: PortType;
 
-  portID: string;
+  id: string;
 
   name: string;
 
   dataType: string;
 
   // for type "in"
-  optional: boolean;
+  optional?: boolean;
 
   // only for type="out"
   links: Array<ILink>;
@@ -23,7 +23,7 @@ export interface IPort {
 export class Port<T = unknown> implements IPort {
   type: PortType;
 
-  portID: string;
+  id: string;
 
   name: string;
 
@@ -36,10 +36,10 @@ export class Port<T = unknown> implements IPort {
   data?: T;
 
   constructor(public node: Node, port: IPort) {
-    const { type, portID, name, dataType, links } = port;
+    const { type, id, name, dataType, links = [] } = port;
 
     this.type = type;
-    this.portID = portID;
+    this.id = id;
     this.name = name;
     this.dataType = dataType;
 
@@ -48,32 +48,35 @@ export class Port<T = unknown> implements IPort {
     });
   }
 
-  static parsePort(node: Node, portID: string, obj: JSONObject): Port {
+  static parsePort(node: Node, id: string, obj: JSONObject): Port {
     const { type, name, dataType, optional } = obj;
 
     const port = new Port(node, {
       type: type as PortType,
-      portID,
+      id,
       name: name as string,
       dataType: dataType as string,
       optional: !!optional ?? false,
-      links: [] as Array<ILink>,
+      links: [],
     });
 
-    Array.from((obj.links as JSONValue[]) ?? []).reduce<Array<ILink>>(
-      (links, item: JSONValue) => {
-        links.push( Link.parseLink( port, item as JSONObject )) ;
+    // only "out" ports have links
+    if (type == "out") {
+      Array.from((obj.links as JSONObject[]) ?? []).reduce<Array<ILink>>(
+        (links, item: JSONObject) => {
+          links.push(Link.parseLink(port, item));
 
-        return links;
-      },
-      port.links
-    );
+          return links;
+        },
+        port.links
+      );
+    }
 
     return port;
   }
 
   toObject(): JSONObject {
-    const { portID, type, name } = this;
+    const { type, name, dataType } = this;
 
     const links = Array.from(this.links).reduce((links, link) => {
       links.push(link.toObject());
@@ -81,11 +84,15 @@ export class Port<T = unknown> implements IPort {
       return links;
     }, [] as JSONObject[]);
 
-    return {
-      portID,
+    const port: JSONObject = {
       type,
+      dataType,
       name,
-      links,
     };
+
+    // only "out" ports have links
+    if (type == "out" && links.length > 0) port.links = links;
+
+    return port;
   }
 }

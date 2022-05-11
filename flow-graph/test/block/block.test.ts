@@ -1,79 +1,69 @@
-import { IBlock, IBlockInfo, getInterface } from "../deps.ts";
-import {
-  InterfacePropertyInfos,
-  registerInterface,
-} from "../deps.ts";
+import { Block, IBlockInfo, getInterface } from "../deps.ts";
+import { InterfacePropertyInfos, registerInterface } from "../deps.ts";
 
-interface IBlockCipher {
+interface IFBlockCipher {
+  direction: "encrypt" | "decrypt";
+
   plainText: Uint8Array;
 
   cipherText: Uint8Array;
 
   key: Uint8Array;
 
-  encrypt: boolean;
-
   blockSize: number;
 }
 
-const props: InterfacePropertyInfos<IBlockCipher> = {
-  key: { access: "in", dataType: "u8[]" },
-  encrypt: { access: "in", dataType: "boolean", default: true },
-  plainText: { access: "in", dataType: "u8[]" },
+const blockCipherProps: InterfacePropertyInfos<IFBlockCipher> = {
+  // config
+  direction: {
+    accessors: "both",
+    dataType: "enum",
+    default: "encrypt",
+    options: ["encrypt", "decrypt"],
+  },
 
-  blockSize: { access: "out", dataType: "integer" },
-  cipherText: { access: "out", dataType: "u8[]" },
+  //
+  plainText: { accessors: "set", dataType: "u8[]" },
+  key: { accessors: "set", dataType: "u8[]" },
+
+  // out
+  blockSize: { accessors: "get", dataType: "integer" },
+  cipherText: { accessors: "get", dataType: "u8[]" },
 };
 
-const IBlockCipher = registerInterface<IBlockCipher>(
+const IFBlockCipher = registerInterface<IFBlockCipher>(
   "IBlockCipher",
   "org.cryptographix.cryptography",
-  props,
+  blockCipherProps
 );
 
-const blockCipherInfo = getInterface<IBlockCipher>(IBlockCipher);
+const blockCipherInfo = getInterface<IFBlockCipher>(IFBlockCipher);
 
-type IN = Pick<IBlockCipher, "plainText" | "key" | "encrypt">;
-type OUT = Pick<IBlockCipher, "cipherText" | "blockSize">;
+// type CFG = Pick<IFBlockCipher, "direction">
+// type IN = Pick<IFBlockCipher, "plainText" | "key">;
+// type OUT = Pick<IFBlockCipher, "cipherText" | "blockSize">;
 
-export class AESBlockCipher implements IBlock, IBlockCipher {
-  plainText!: Uint8Array;
-
+export class AESBlockCipher extends Block {
   key!: Uint8Array;
 
-  encrypt = true;
+  direction!: "encrypt" | "decrypt";
 
   blockSize = 128;
 
-  cipherText!: Uint8Array;
-
-  constructor(init?: IN) {
-    if (init) {
-      this.#init(init);
-    }
+  override setup({ direction }: Pick<IFBlockCipher, "direction">) {
+    return super.setup( { direction } );
   }
 
-  #init({ key, plainText, encrypt }: IN) {
-    this.plainText = plainText;
+  override process({ key, plainText }: Pick<IFBlockCipher, "plainText" | "key">): Promise<Pick<IFBlockCipher, "cipherText" | "blockSize">> {
     this.key = key;
-    this.encrypt = encrypt;
+
+    return Promise.resolve({
+      cipherText: plainText,
+      blockSize: this.blockSize,
+    });
   }
 
-  setup(init: IN): void {
-    this.#init(init);
-  }
-
-  process(): Promise<OUT> {
-    return Promise.resolve(
-      {
-        cipherText: this.plainText,
-        blockSize: this.blockSize,
-      },
-    );
-  }
-
-  teardown(): void {
-  }
+  override teardown(): void {}
 
   static readonly blockInfo: IBlockInfo<AESBlockCipher> = {
     name: "AES Block Cipher",
@@ -89,6 +79,19 @@ export class AESBlockCipher implements IBlock, IBlockCipher {
         maxLength: 32,
         lengthStep: 8,
       },
+      blockSize: {
+        ...blockCipherInfo.blockSize,
+        default: 16,
+      },
     },
   };
 }
+
+console.log(JSON.stringify(AESBlockCipher.blockInfo, null, 2));
+
+const cipher = new AESBlockCipher();
+cipher.setup( { direction: "encrypt" } );
+
+const out = await cipher.process( { key: new Uint8Array(), plainText: new Uint8Array() });
+
+console.log( out );

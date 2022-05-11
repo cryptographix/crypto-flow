@@ -1,23 +1,16 @@
 import { JSONObject } from "../deps.ts";
-import { Graph } from "./graph.ts";
 import { Port, IPort } from "./port.ts";
 
-export type NodeType = "none" | "root" | "flow" | "block" | "code" | "flow" | "input" | "output";
-export type NodeStatus =
-  | "initialized"
-  | "setup"
-  | "waiting"
-  | "ready"
-  | "busy"
-  | "done"
-  | "shutdown";
+export type NodeType = "none" | "root" | "flow" | "block" | "code" | "input" | "output";
 
 export interface INode<Port extends IPort = IPort> {
   type: NodeType;
 
-  nodeID: string;
+  id: string;
 
-  title: string;
+  block: JSONObject | null;
+
+  name: string;
 
   ports: Map<string, Port>;
 }
@@ -35,20 +28,21 @@ export interface NodeFacade<N extends Node> {
 export class Node implements INode<Port> {
   type: NodeType;
 
-  nodeID: string;
+  id: string;
 
-  title: string;
+  name: string;
+
+  block: JSONObject | null;
 
   ports: Map<string, Port>;
 
-  #status: NodeStatus;
-
-  constructor(public flow: Graph, node: INode) {
-    const { type, nodeID, title, ports } = node;
+  constructor(node: INode) {
+    const { type, id, name, block = null, ports } = node;
 
     this.type = type;
-    this.nodeID = nodeID;
-    this.title = title;
+    this.id = id;
+    this.block = block;
+    this.name = name;
 
     this.ports = new Map(
       Object.entries(ports).map(([_portID, port]) => [
@@ -56,25 +50,20 @@ export class Node implements INode<Port> {
         new Port(this, port),
       ])
     );
-
-    this.#status = "initialized";
   }
 
-  get status() {
-    return this.#status;
-  }
+  static parseNode(id: string, obj: JSONObject): Node {
+    const { type, name, block } = obj;
 
-  static parseNode(flow: Graph, nodeID: string, obj: JSONObject): Node {
-    const { type, title = "" } = obj;
-
-    const node = new Node(flow, {
+    const node = new Node({
       type: type as NodeType,
-      nodeID,
-      title: title as string,
+      id,
+      block: block as JSONObject,
+      name: name as string,
       ports: new Map<string, Port>(),
     });
 
-    Object.entries(obj.ports ?? {}).reduce((ports, item) => {
+    Object.entries((obj.ports as JSONObject[]) ?? {}).reduce((ports, item) => {
       const [id, port] = item;
 
       ports.set(id, Port.parsePort(node, id, port));
@@ -86,7 +75,7 @@ export class Node implements INode<Port> {
   }
 
   toObject(): JSONObject {
-    const { nodeID, type, title = "" } = this;
+    const { type, name, block } = this;
 
     const ports = Array.from(this.ports).reduce( (ports, [portID, port]) => {
       ports[portID] =  port.toObject();
@@ -94,11 +83,11 @@ export class Node implements INode<Port> {
       return ports;
     }, {} as JSONObject);
 
-    return {
-      nodeID,
+    return JSONObject.removeNullOrUndefined( {
       type,
-      title,
+      name,
+      block,
       ports,
-    };
+    } );  
   }
 }
