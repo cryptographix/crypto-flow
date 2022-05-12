@@ -67,11 +67,15 @@ export class Project implements IProject<Graph> {
   }
 
   static parseProject(obj: JSONObject): Project {
-    const { type = "project", title, projectID } = obj;
+    if (typeof obj["project"] == "object") {
+      return Project.parseProject(obj["project"] as JSONObject);
+    }
+
+    const { type = "project", title="", projectID } = obj;
 
     const project = new Project({
       type: type as string,
-      title: (title ?? "") as string,
+      title: title as string,
       projectID: projectID as string,
       flows: new Map(),
     });

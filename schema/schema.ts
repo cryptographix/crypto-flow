@@ -1,5 +1,5 @@
 import { AnyObject, ByteArray, EmptyObject, IConstructable } from "./type-helpers.ts";
-import { IPropertyInfo, IPropertyInfos, PropertyValue } from "./property.ts";
+import { IPropertyInfo, PropertyInfos, PropertyValue } from "./property.ts";
 import { schemaStore } from "./schema-store.ts";
 
 /**
@@ -19,7 +19,7 @@ export interface ISchema {
   namespace?: string;
 
   //
-  properties: IPropertyInfos;
+  properties: PropertyInfos;
 }
 
 /**
@@ -93,7 +93,7 @@ export abstract class Schema {
         ? obj[key]
         : propInfo.default;
 
-    if (propInfo.dataType instanceof Object) {
+    if (typeof propInfo.dataType !== "string") {
       // initialize sub-object
       value = Schema.initObjectFromClass(propInfo.dataType as IConstructable<TO>, value as TO);
     } else if (value === undefined && !propInfo.optional && useDefaultForType) {

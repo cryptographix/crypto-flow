@@ -1,32 +1,26 @@
 import {
   IPropertyInfo,
-  IPropertyValues,
+  PropertyValues,
   PropertiesOf,
+  NoProperties,
 } from "../deps.ts";
 
-export abstract class Block {
+export abstract class Block<IF = NoProperties> {
   /**
    * Setup `Block` using config
    */
-  setup(
-    config: IPropertyValues
-  ): void | IPropertyValues | Promise<IPropertyValues> {
+  setup(config: Partial<IF>): void | PropertyValues | Promise<PropertyValues> {
     Object.assign(this, config);
   }
 
-  validate( params: IPropertyValues ): boolean {
-    (params);
-
-    return true; 
+  validate(_params: IF): boolean {
+    return true;
   }
+
   /**
-   * Process input ports and send results to output ports
-   *
-   * Returns hash of altered output Ports
+   * Process input properties and set output properties
    */
-  abstract process(
-    params: IPropertyValues
-  ): Promise<IPropertyValues> | IPropertyValues | void;
+  abstract process(): void | Promise<void>;
 
   /**
    * Finalize block and release resources
@@ -53,7 +47,7 @@ export interface IBlockInfo<BLK extends Block = Block> {
   category: string;
   namespace?: string;
 
-  propInfo: {
+  propInfos: {
     [K in keyof PropertiesOf<BLK>]-?: IPropertyInfo<BLK[K]>;
   };
 }

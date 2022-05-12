@@ -26,7 +26,7 @@ export type IPropertyInfo<T = unknown> = {
   optional?: boolean;
 
   constant?: boolean;
-  
+
   // default value for property
   default?: T;
 
@@ -132,10 +132,13 @@ export type IPropertyInfo<T = unknown> = {
     }
 );
 
-export type IPropertyInfos = Record<string, IPropertyInfo>;
-export type IPropertyValues = Record<string, PropertyValue>;
+export type PropertyDataTypes = Exclude<IPropertyInfo["dataType"], string>;
+export type PropertyInfos = Record<string, IPropertyInfo>;
+export type PropertyKey = keyof PropertyInfos;
+export type PropertyValues = Record<keyof PropertyInfos, PropertyValue>;
 
-export type NoProperties = Record<never, PropertyValue>
+export type NoProperties = Record<never, PropertyValue>;
+
 
 /**
  * A schema-enhanced reference to a Property

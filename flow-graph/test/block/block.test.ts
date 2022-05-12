@@ -4,13 +4,13 @@ import { InterfacePropertyInfos, registerInterface } from "../deps.ts";
 interface IFBlockCipher {
   direction: "encrypt" | "decrypt";
 
-  plainText: Uint8Array;
-
-  cipherText: Uint8Array;
-
   key: Uint8Array;
 
   blockSize: number;
+
+  plainText: Uint8Array;
+
+  cipherText: Uint8Array;
 }
 
 const blockCipherProps: InterfacePropertyInfos<IFBlockCipher> = {
@@ -39,38 +39,33 @@ const IFBlockCipher = registerInterface<IFBlockCipher>(
 
 const blockCipherInfo = getInterface<IFBlockCipher>(IFBlockCipher);
 
-// type CFG = Pick<IFBlockCipher, "direction">
-// type IN = Pick<IFBlockCipher, "plainText" | "key">;
-// type OUT = Pick<IFBlockCipher, "cipherText" | "blockSize">;
-
-export class AESBlockCipher extends Block {
+export class AESBlockCipher extends Block<IFBlockCipher> implements IFBlockCipher {
   key!: Uint8Array;
 
   direction!: "encrypt" | "decrypt";
 
   blockSize = 128;
 
-  override setup({ direction }: Pick<IFBlockCipher, "direction">) {
-    return super.setup( { direction } );
+  plainText!: Uint8Array;
+
+  cipherText!: Uint8Array;
+
+  override setup({ direction }: Partial<IFBlockCipher>) {
+    return super.setup({ direction });
   }
 
-  override process({ key, plainText }: Pick<IFBlockCipher, "plainText" | "key">): Promise<Pick<IFBlockCipher, "cipherText" | "blockSize">> {
-    this.key = key;
-
-    return Promise.resolve({
-      cipherText: plainText,
-      blockSize: this.blockSize,
-    });
+  override process(): void {
+    const { key, plainText } = this;
+    (key);
+    this.cipherText = plainText;
   }
-
-  override teardown(): void {}
 
   static readonly blockInfo: IBlockInfo<AESBlockCipher> = {
     name: "AES Block Cipher",
     category: "crypto",
     namespace: "org.cryptographix.cryptography.block-ciphers",
 
-    propInfo: {
+    propInfos: {
       ...blockCipherInfo,
       key: {
         ...blockCipherInfo.key,
@@ -81,17 +76,41 @@ export class AESBlockCipher extends Block {
       },
       blockSize: {
         ...blockCipherInfo.blockSize,
-        default: 16,
+        constant: true,
+        default: 128,
       },
     },
   };
 }
 
-console.log(JSON.stringify(AESBlockCipher.blockInfo, null, 2));
+import { Test } from "../deps.ts";
 
-const cipher = new AESBlockCipher();
-cipher.setup( { direction: "encrypt" } );
+Test.test({
+  name: "Block extends registered interface",
+  fn: () => {
+    const propInfo = AESBlockCipher.blockInfo.propInfos;
 
-const out = await cipher.process( { key: new Uint8Array(), plainText: new Uint8Array() });
+    Test.assertEquals(Object.keys(propInfo).length, 5);
+    Test.assertEquals(propInfo.plainText, blockCipherInfo.plainText);
+    Test.assertNotEquals(propInfo.blockSize, blockCipherInfo.blockSize);
+  },
+});
 
-console.log( out );
+Test.test({
+  name: "Block setup and process",
+  fn: async () => {
+    const cipher = new AESBlockCipher();
+    cipher.setup({ direction: "encrypt" });
+
+    Test.assertEquals(cipher.direction, "encrypt", "setup");
+
+    cipher.key = new Uint8Array( 16 );
+    cipher.plainText  =  new Uint8Array( 16 );
+
+    await cipher.process();
+
+    const { blockSize, cipherText } = cipher;
+    Test.assertEquals(blockSize, 128);
+    Test.assertEquals(cipherText instanceof Uint8Array, true);
+  },
+});

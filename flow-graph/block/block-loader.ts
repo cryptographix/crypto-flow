@@ -14,7 +14,9 @@ export class BlockLoader {
     });
   }
 
-  registerBlock(name: string, blockCtor: IBlockConstructor) {
+  registerBlock(name: string, blockCtor: IBlockConstructor): this {
     this.#blocks.set(name, blockCtor);
+
+    return this;
   }
 }
