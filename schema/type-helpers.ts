@@ -2,7 +2,7 @@ export class ByteArray extends Uint8Array {}
 
 export type AnyObject = Record<string, unknown>;
 
-export type EmptyObject = Record<never,never>;
+export type EmptyObject = Record<never,unknown>;
 export const EmptyObject: EmptyObject = {};
 
 export type Writable<T> = { -readonly [P in keyof T]: T[P] };
@@ -24,13 +24,13 @@ export type PropertiesOf<T> = Pick<
   }[keyof T]
 >;
 
-export type PartialPropertiesOf<T> = Partial<Pick<
-  T,
+export type PartialPropertiesOf<T> = Pick<
+  Partial<T>,
   {
     // deno-lint-ignore ban-types
     [K in keyof T]: T[K] extends Function ? never : K;
   }[keyof T]
->>;
+>;
 
 export type Nullable<T> = {[K in keyof T]: T[K]|null};
 

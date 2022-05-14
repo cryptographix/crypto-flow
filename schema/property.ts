@@ -1,4 +1,6 @@
-import { AnyObject, IConstructable, JSONObject } from "./type-helpers.ts";
+import { AnyObject, IConstructable, JSONObject, PropertiesOf } from "./type-helpers.ts";
+
+let x: PropertiesOf<null>;
 
 export type PropertyValue =
   | boolean
@@ -128,17 +130,16 @@ export type IPropertyInfo<T = unknown> = {
        */
       dataType: "slot";
 
-      implements: string;
+      implements: symbol;
     }
 );
 
-export type PropertyDataTypes = Exclude<IPropertyInfo["dataType"], string>;
-export type PropertyInfos = Record<string, IPropertyInfo>;
-export type PropertyKey = keyof PropertyInfos;
-export type PropertyValues = Record<keyof PropertyInfos, PropertyValue>;
-
 export type NoProperties = Record<never, PropertyValue>;
 
+export type PropertyDataTypes = Exclude<IPropertyInfo["dataType"], string>;
+export type PropertyInfos<IF> = Record<keyof IF, IPropertyInfo>;
+export type PropertyKey<IF> = keyof PropertiesOf<IF>;
+export type PropertyValues<IF> = Record<keyof IF, PropertyValue>;
 
 /**
  * A schema-enhanced reference to a Property

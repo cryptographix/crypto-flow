@@ -7,9 +7,9 @@ export * from "./graph/project-validator.ts";
 
 export * from "./block/block.ts";
 export * from "./block/block-loader.ts";
-export * from "./block/block-context.ts"
 export * from "./block/block-registry.ts"
 
+export * from "./runtime/block-context.ts"
 export * from "./runtime/block-node.ts";
 export * from "./runtime/flow-runner.ts";
 

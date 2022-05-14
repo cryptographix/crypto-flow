@@ -14,7 +14,10 @@ export interface IGraph<Node extends INode = INode, Port extends IPort = IPort>
 export class Graph extends Node implements IGraph<Node, Port> {
   nodes: Map<string, Node>;
 
-  constructor(public project: IProject, graph: IGraph) {
+  constructor(
+    public project?: IProject,
+    graph: IGraph = Graph.emptyGraph
+  ) {
     super(graph);
 
     const { nodes } = graph;
@@ -63,4 +66,9 @@ export class Graph extends Node implements IGraph<Node, Port> {
       ports,
     });
   }
+
+  static readonly emptyGraph: IGraph = {
+    ...Node.emptyNode,
+    nodes: new Map(),
+  };
 }

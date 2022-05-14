@@ -12,13 +12,13 @@ export function getLoader() {
     class extends Block {
       data?: string;
 
-      process() {
+      run() {
         console.log(this.data);
       }
       static blockInfo = {
         name: "printer",
         category: "",
-        propInfos: {
+        propertyInfos: {
           data: { dataType: "string", accessors: "set" },
         },
       };

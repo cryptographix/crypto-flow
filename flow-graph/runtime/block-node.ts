@@ -1,34 +1,25 @@
-import { BlockContext } from "../block/block-context.ts";
+import { BlockContext } from "./block-context.ts";
 import { BlockLoader } from "../block/block-loader.ts";
 import { INode } from "../graph/node.ts";
-import { ILink, IPort } from "../mod.ts";
+import { Block, ILink, IPort } from "../mod.ts";
+import { AnyObject } from "../deps.ts";
 
-export type NodeStatus =
-  | "initialized"
-  | "setup"
-  | "waiting"
-  | "ready"
-  | "busy"
-  | "done"
-  | "shutdown";
-
-export class BlockNode {
+/**
+ * Placeholder object for lazy loading
+ */
+export class BlockNode<IF = AnyObject, BLK extends Block<IF>= Block<IF>> {
   #loader?: BlockLoader;
-  #status: NodeStatus;
-  #blockContext?: BlockContext;
+  #blockContext?: BlockContext<BLK>;
   #outputConnections = new Map<string, Connection[]>();
 
-  constructor(public node: INode, loader?: BlockLoader) {
-    this.#status = "initialized";
+  readonly id: string;
 
+  constructor(public node: INode, loader?: BlockLoader) {
+    this.id = node.id;
     this.#loader = loader;
   }
 
-  get status() {
-    return this.#status;
-  }
-
-  get context(): BlockContext {
+  get context(): BlockContext<BLK> {
     if (!this.#blockContext) throw new Error("eka");
     return this.#blockContext;
   }
@@ -51,10 +42,10 @@ export class BlockNode {
     switch (this.node.type) {
       case "block": {
         if (this.#loader) {
-          this.#blockContext = await BlockContext.fromLoader(
+          this.#blockContext = (await BlockContext.fromLoader(
             this.#loader,
             this.node.block!.name as string
-          );
+          )) as unknown as BlockContext<BLK>;
         } else {
           throw new Error("No loader");
         }
@@ -62,7 +53,9 @@ export class BlockNode {
       }
 
       case "code": {
-        this.#blockContext = await BlockContext.fromCode(this.node);
+        this.#blockContext = (await BlockContext.fromCode(
+          this.node
+        )) as unknown as BlockContext<BLK>;
         break;
       }
 
@@ -79,8 +72,6 @@ export class BlockNode {
         break;
       }
     }
-
-    this.#status = "setup";
   }
 }
 

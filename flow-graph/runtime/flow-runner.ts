@@ -1,5 +1,5 @@
 import { PropertyValues } from "../deps.ts";
-import { BlockLoader, Connection } from "../mod.ts";
+import { Block, BlockLoader, Connection } from "../mod.ts";
 import { Graph } from "../mod.ts";
 import { BlockNode } from "./block-node.ts";
 
@@ -8,7 +8,10 @@ export class FlowRunner {
   #nodes = new Map<string, BlockNode>();
 
   readonly root: BlockNode;
-  get nodes() { return this.#nodes }
+
+  get nodes() {
+    return this.#nodes;
+  }
 
   #buildNetwork(flow: Graph, loader?: BlockLoader) {
     // restart
@@ -39,6 +42,27 @@ export class FlowRunner {
     });
   }
 
+  #findReadyLinkedNode(sourceNode: BlockNode): BlockNode | null {
+    for (const [portID, _port] of sourceNode.node.ports) {
+      const cons = sourceNode.getOutputConnections(portID);
+
+      for (const con of cons) {
+        const targetNode = con.targetNode;
+
+        if (!this.hasTriggered(targetNode)) {
+          if (targetNode.context.canTrigger(this.#triggerID)) {
+            return targetNode;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * 
+   */
   constructor(public readonly flow: Graph) {
     this.root = new BlockNode(flow);
   }
@@ -53,7 +77,7 @@ export class FlowRunner {
     return Promise.all(nodes.map((bn) => bn.loadBlock()));
   }
 
-  nextTrigger(): number {
+  nextTriggerID(): number {
     this.#triggerID++;
     this.#triggeredNodes = [];
 
@@ -63,24 +87,6 @@ export class FlowRunner {
   #triggeredNodes: BlockNode[] = [];
   hasTriggered(node: BlockNode) {
     return this.#triggeredNodes.includes(node);
-  }
-
-  #findReadyLinkedNode(sourceNode: BlockNode): BlockNode | null {
-    for (const [portID, _port] of sourceNode.node.ports) {
-      const cons = sourceNode.getOutputConnections(portID);
-
-      for (const con of cons) {
-        const targetNode = con.targetNode;
-
-        if (!this.hasTriggered(targetNode)) {
-          if (targetNode.context.canProcess(this.#triggerID)) {
-            return targetNode;
-          }
-        }
-      }
-    }
-
-    return null;
   }
 
   nextReadyNode(): BlockNode | undefined {
@@ -94,7 +100,7 @@ export class FlowRunner {
     }
 
     for (const [_nodeID, node] of this.#nodes) {
-      if (node.context.canProcess(this.#triggerID)) return node;
+      if (node.context.canTrigger(this.#triggerID)) return node;
     }
 
     // nobody is ready
@@ -105,17 +111,18 @@ export class FlowRunner {
     const selectedNode = node ?? this.nextReadyNode();
 
     if (selectedNode) {
+      // will not execute again for same "triggerID"
       this.#triggeredNodes.push(selectedNode);
 
-      return selectedNode.context.process(this.#triggerID).then((output) => {
-        if (output != {}) {
+      return selectedNode.context.trigger(this.#triggerID).then((output) => {
+        if (output instanceof Object) {
           for (const [portID, _port] of selectedNode.node.ports) {
             const cons = selectedNode.getOutputConnections(portID);
 
             for (const con of cons) {
               const targetNode = con.targetNode;
 
-              const values = { [con.link.portID]: output[ con.port.id ] };
+              const values = { [con.link.portID]: output[con.port.id as keyof PropertyValues<Block>] };
 
               targetNode.context.setInputs(values);
             }

@@ -1,37 +1,51 @@
-import { Block, IBlockConstructor, IBlockInfo } from "./block.ts";
-import { BlockLoader } from "./block-loader.ts";
+import {
+  Block,
+  IBlockConstructor,
+  IBlockInfo,
+  BlockPropertyInfos,
+} from "../block/block.ts";
+import { BlockLoader } from "../block/block-loader.ts";
 import {
   PropertyValues,
-  PropertyInfos,
   PropertyDataTypes,
   PartialPropertiesOf,
   IPropertyInfo,
+  PropertyKey,
+  NoProperties,
+PropertyInfos,
+PropertyValue,
+AnyObject,
 } from "../deps.ts";
 import { INode } from "../mod.ts";
 
-type BlockFunction = {
-  (params: Partial<PropertyValues>): PropertyValues;
-};
+export type BlockStatus =
+  | "initialized"
+  | "setup"
+  | "waiting"
+  | "ready"
+  | "busy"
+  | "done"
+  | "finalized";
 
 /**
  * BlockContext holds runtime state for a Block within a Network
  *
- * Contains a Block instance, a fresh copy of BlockInfo, and a hash of
- * already supplied input values.
+ * Contains a Block instance and a fresh copy of BlockInfo.
  */
-export class BlockContext<BLK extends Block = Block> {
-  #block: BLK;
-  #blockInfo: IBlockInfo<BLK>;
-  #inPropKeys: string[];
-  #outPropKeys: string[];
+export class BlockContext<
+  IF = AnyObject,
+  BLK extends Block<IF> = Block<IF>
+> {
+  readonly block: BLK;
+  readonly blockInfo: IBlockInfo<BLK>;
+  #inPropKeys: PropertyKey<IF>[] = [];
+  #outPropKeys: PropertyKey<IF>[] = [];
   #ready?: boolean;
+  #status: BlockStatus = "initialized";
   #lastTriggerID = 0;
 
-  #setBlockInfo(blockInfo: IBlockInfo<BLK>) {
-    this.#blockInfo = blockInfo;
-
-    const propertyInfos: Record<string, IPropertyInfo> = blockInfo.propInfos;
-    const blockPropertyKeys = Object.keys(blockInfo.propInfos);
+  #setPropertyInfos(propertyInfos: BlockPropertyInfos<BLK>) {
+    const blockPropertyKeys = Object.keys(propertyInfos) as PropertyKey<IF>[];
 
     this.#inPropKeys = blockPropertyKeys.filter(
       (key) => propertyInfos[key].accessors == "set"
@@ -42,34 +56,21 @@ export class BlockContext<BLK extends Block = Block> {
   }
 
   constructor(blockCtor: IBlockConstructor<BLK>) {
-    this.#block = new blockCtor();
-    this.#blockInfo = blockCtor.blockInfo ?? { propInfos: {} };
-
-    this.#inPropKeys = [];
-    this.#outPropKeys = [];
+    this.block = new blockCtor();
+    this.blockInfo = blockCtor.blockInfo ?? { propertyInfos: {} };
 
     // Cache property keys
-    this.#setBlockInfo(this.#blockInfo);
+    this.#setPropertyInfos(this.blockInfo.propertyInfos);
   }
 
-  get block() {
-    return this.#block;
-  }
-  get blockInfo() {
-    return this.#blockInfo;
-  }
-
-  async setup(cfg: PartialPropertiesOf<BLK>) {
-    const newProps = await this.#block.setup(cfg);
+  async setup(cfg: PartialPropertiesOf<IF>) {
+    const newProps = await this.block.setup(cfg);
 
     if (newProps) {
       // Specialize our copy of BlockInfo, overwriting any propInfos returned
-      this.#setBlockInfo({
-        ...this.#blockInfo,
-        propInfos: {
-          ...this.#blockInfo.propInfos,
-          ...newProps,
-        },
+      this.#setPropertyInfos({
+        ...this.blockInfo.propertyInfos,
+        ...newProps,
       });
     }
 
@@ -77,8 +78,8 @@ export class BlockContext<BLK extends Block = Block> {
   }
 
   clearInputs() {
-    const block: Partial<PropertyValues> = this
-      .#block as unknown as PropertyValues;
+    const block: Partial<PropertyValues<IF>> = this
+      .block as unknown as PropertyValues<IF>;
 
     // store supplied inputs ...
     this.#inPropKeys.forEach((key) => {
@@ -88,23 +89,23 @@ export class BlockContext<BLK extends Block = Block> {
     this.#ready = undefined;
   }
 
-  setInputs(values: PropertyValues) {
-    const block: PropertyValues = this.#block as unknown as PropertyValues;
+  setInputs(values: Partial<PropertyValues<IF>>) {
+    const block = this.block as unknown as PropertyValues<IF>;
 
     // store supplied inputs ...
     this.#inPropKeys.forEach((key) => {
       if (values[key] !== undefined) {
-        block[key] = values[key];
+        block[key] = values[key]!;
       }
     });
 
     this.#ready = undefined;
   }
 
-  canProcess(triggerID: number): boolean {
+  canTrigger(triggerID: number): boolean {
     if (this.#ready === undefined) {
-      const block: PropertyValues = this.#block as unknown as PropertyValues;
-      const propInfos: PropertyInfos = this.#blockInfo.propInfos;
+      const block = this.block as unknown as PropertyValues<IF>;
+      const propInfos: PropertyInfos<IF> = this.blockInfo.propertyInfos as unknown as PropertyInfos<IF>;
 
       // all required inputs present ...
       this.#ready = this.#inPropKeys.every((key) => {
@@ -122,43 +123,46 @@ export class BlockContext<BLK extends Block = Block> {
    *
    * @returns results (if any) from block processing
    */
-  async process(triggerID: number): Promise<PropertyValues> {
-    if (this.canProcess(triggerID)) {
-      await this.#block.process();
+  async trigger(triggerID: number): Promise<PropertyValues<IF>> {
+    if (this.canTrigger(triggerID)) {
+      await this.block.run();
 
       this.#lastTriggerID = triggerID;
 
-      const block: PropertyValues = this.#block as unknown as PropertyValues;
+      // done processing
+      this.#ready = false;
+
+      const block = this.block as unknown as PropertyValues<BLK>;
 
       // collect out properties and return
-      return this.#outPropKeys.reduce<PropertyValues>((outputs, key) => {
-        outputs[key] = block[key];
+      const xx = this.#outPropKeys.reduce((outputs, key) => {
+        outputs[key] = block[key] as unknown as PropertyValue;
 
         return outputs;
-      }, {});
+      }, {} as PropertyValues<IF>);
+
+      return xx;
     }
 
     return Promise.reject("not ready to process");
   }
 
   teardown() {
-    this.#block = {} as BLK;
-    this.#blockInfo = {} as IBlockInfo<BLK>;
+    this.#status = "finalized";
   }
 
-  static async fromCode(node: INode): Promise<BlockContext> {
+  static async fromCode<IF>(node: INode): Promise<BlockContext<IF>> {
     const code = node.block!.code as string;
 
-    const myJSFile = new Blob([code], { type: "application/javascript" });
-    const myJSURL = URL.createObjectURL(myJSFile);
+    const url = "data:text/javascript,"+code;
 
-    const module = await import(myJSURL);
+    const module = await import(url);
 
     if (module.default instanceof Function) {
       const blockFunc = module.default;
 
       const blockCtor: IBlockConstructor = class extends Block {
-        async process() {
+        async run() {
           const ret = await blockFunc(this);
 
           if (ret instanceof Object) {
@@ -169,11 +173,11 @@ export class BlockContext<BLK extends Block = Block> {
         static blockInfo: IBlockInfo = {
           name: "code",
           category: "code",
-          propInfos: {},
+          propertyInfos: {},
         };
       };
 
-      const propInfos: PropertyInfos = {};
+      const propInfos: Record<string, IPropertyInfo> = {};
 
       node.ports.forEach((port, key) => {
         propInfos[key] = {
@@ -182,15 +186,15 @@ export class BlockContext<BLK extends Block = Block> {
         };
       });
 
-      blockCtor.blockInfo.propInfos = propInfos;
-      console.log(propInfos);
-      return new BlockContext(blockCtor);
+      blockCtor.blockInfo.propertyInfos = propInfos;
+
+      return new BlockContext(blockCtor) as unknown as BlockContext<IF>;
     }
 
     return Promise.reject("Invalid code block");
   }
 
-  static async fromLoader(
+  static async fromLoader<B extends Block = Block>(
     loader: BlockLoader,
     name: string
   ): Promise<BlockContext> {

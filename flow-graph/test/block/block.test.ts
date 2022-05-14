@@ -54,7 +54,7 @@ export class AESBlockCipher extends Block<IFBlockCipher> implements IFBlockCiphe
     return super.setup({ direction });
   }
 
-  override process(): void {
+  override run(): void {
     const { key, plainText } = this;
     (key);
     this.cipherText = plainText;
@@ -65,7 +65,7 @@ export class AESBlockCipher extends Block<IFBlockCipher> implements IFBlockCiphe
     category: "crypto",
     namespace: "org.cryptographix.cryptography.block-ciphers",
 
-    propInfos: {
+    propertyInfos: {
       ...blockCipherInfo,
       key: {
         ...blockCipherInfo.key,
@@ -88,7 +88,7 @@ import { Test } from "../deps.ts";
 Test.test({
   name: "Block extends registered interface",
   fn: () => {
-    const propInfo = AESBlockCipher.blockInfo.propInfos;
+    const propInfo = AESBlockCipher.blockInfo.propertyInfos;
 
     Test.assertEquals(Object.keys(propInfo).length, 5);
     Test.assertEquals(propInfo.plainText, blockCipherInfo.plainText);
@@ -107,7 +107,7 @@ Test.test({
     cipher.key = new Uint8Array( 16 );
     cipher.plainText  =  new Uint8Array( 16 );
 
-    await cipher.process();
+    await cipher.run();
 
     const { blockSize, cipherText } = cipher;
     Test.assertEquals(blockSize, 128);

@@ -1,5 +1,6 @@
 {
   "tasks": {
-    "test": "deno test test-all.ts"
+    "test": "deno test test-all.ts",
+    "build-esm": "deno run --allow-all dnt.ts"
   }
 }

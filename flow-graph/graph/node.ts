@@ -1,7 +1,14 @@
 import { JSONObject } from "../deps.ts";
 import { Port, IPort } from "./port.ts";
 
-export type NodeType = "none" | "root" | "flow" | "block" | "code" | "input" | "output";
+export type NodeType =
+  | "none"
+  | "root"
+  | "flow"
+  | "block"
+  | "code"
+  | "input"
+  | "output";
 
 export interface INode<Port extends IPort = IPort> {
   type: NodeType;
@@ -25,6 +32,14 @@ export interface NodeFacade<N extends Node> {
   readonly outPorts: Map<string, Port>;
 }
 
+const emptyNode: INode = {
+  type: "none",
+  id: "",
+  block: {},
+  name: "",
+  ports: new Map(),
+};
+
 export class Node implements INode<Port> {
   type: NodeType;
 
@@ -36,7 +51,7 @@ export class Node implements INode<Port> {
 
   ports: Map<string, Port>;
 
-  constructor(node: INode) {
+  constructor(node: INode = Node.emptyNode ) {
     const { type, id, name, block = null, ports } = node;
 
     this.type = type;
@@ -77,17 +92,25 @@ export class Node implements INode<Port> {
   toObject(): JSONObject {
     const { type, name, block } = this;
 
-    const ports = Array.from(this.ports).reduce( (ports, [portID, port]) => {
-      ports[portID] =  port.toObject();
-      
+    const ports = Array.from(this.ports).reduce((ports, [portID, port]) => {
+      ports[portID] = port.toObject();
+
       return ports;
     }, {} as JSONObject);
 
-    return JSONObject.removeNullOrUndefined( {
+    return JSONObject.removeNullOrUndefined({
       type,
       name,
       block,
       ports,
-    } );  
+    });
   }
+
+  static readonly emptyNode: INode = {
+    type: "none",
+    id: "",
+    block: {},
+    name: "",
+    ports: new Map(),
+  };
 }
