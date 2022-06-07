@@ -52,7 +52,6 @@ test("DES2 ECB", async () => {
   });
 
   await ecb.run();
-  console.log(HEX.toString(ecb.cipherText));
 
   assertEquals(ecb.cipherText, HEX.parse("82 62 B4 14 65 A5 16 78"));
 

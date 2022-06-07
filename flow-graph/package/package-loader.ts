@@ -35,11 +35,13 @@ export class ImportDefinition {
     if (Array.isArray(value) || JSONValue.isString(value)) {
       const urls = Array.isArray(value) ? JSONValue.asStringArray(value) : [JSONValue.asString(value)]
 
-      return new ImportDefinition(namespace,
+      return new ImportDefinition(
+        namespace,
         {
           moduleURLs: urls,
           importFilters: []
-        });
+        }
+      );
     }
 
     if (!JSONValue.isObject(value))
@@ -73,7 +75,7 @@ export class ImportDefinition {
  * 
  */
 export class PackageLoader {
-  constructor(public baseURL: string, public importDefinition: ImportDefinition) {
+  constructor(public importDefinition: ImportDefinition, public baseURL?: string) {
     //
   }
 
@@ -85,6 +87,8 @@ export class PackageLoader {
     const packages: Promise<Package>[] = [];
 
     for (const moduleURL of importDefinition.moduleURLs ?? []) {
+      console.log(moduleURL, this.baseURL)
+
       const url = new URL(moduleURL, this.baseURL);
       const lowerPath = url.pathname.toLowerCase();
 

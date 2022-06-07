@@ -1,5 +1,6 @@
 import {
-  AbstractBlock,
+  BlockInstance,
+  Block,
   BlockDefinition,
   BlockHelper,
   PartialPropertiesOf,
@@ -7,19 +8,13 @@ import {
 import { IFBlockCipher } from "../../interfaces/block-cipher.ts";
 
 interface IFBlockCipherMode extends IFBlockCipher {
-  blockCipher: IFBlockCipher & AbstractBlock<IFBlockCipher>;
+  blockCipher: BlockInstance<Block<IFBlockCipher>>;
 }
 
-type IN = Pick<
-  CBCCipherModeBlock,
-  "plainText" | "key" | "direction" | "blockCipher"
->;
-type OUT = Pick<CBCCipherModeBlock, "cipherText" | "blockSize">;
-
-class CBCCipherModeBlock implements AbstractBlock<CBCCipherModeBlock>, IFBlockCipherMode {
+class CBCCipherModeBlock implements Block<CBCCipherModeBlock>, IFBlockCipherMode {
   $helper!: BlockHelper<CBCCipherModeBlock>;
 
-  blockCipher!: IFBlockCipher & AbstractBlock<IFBlockCipher>;
+  blockCipher!: BlockInstance<Block<IFBlockCipher>>;
 
   direction: "encrypt" | "decrypt" = "encrypt";
 

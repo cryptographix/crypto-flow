@@ -1300,18 +1300,18 @@ export { SHA1Hash as SHA1Hash };
 const packageDefinition = {
     "namespace": "org.cryptographix.cryptography",
     packages: {
-        "base": {
+        "block_ciphers": {
             interfaces: {
                 "IFBlockCipher": IFBlockCipher
             },
             blocks: {
-                [CBCBlockCipherMode.name]: CBCBlockCipherMode
+                "AESBlockCipher": AESBlockCipher,
+                "DESBlockCipher": DESBlockCipher
             }
         },
-        "block-ciphers": {
+        "block_ciphers.modes": {
             blocks: {
-                [AESBlockCipher.name]: AESBlockCipher,
-                [DESBlockCipher.name]: DESBlockCipher
+                "CBCBlockCipherMode": CBCBlockCipherMode
             }
         }
     }

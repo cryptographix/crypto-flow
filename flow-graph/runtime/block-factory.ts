@@ -1,7 +1,12 @@
 import { AnyInterface, PartialPropertiesOf, PropertiesOf, PropertyDefinition, PropertyValue, Schema } from "../deps.ts";
-import { AnyBlock, BlockConstructor, BlockDefinition, BlockHelper, BlockPropertiesOf, BlockPropertyDefinitions, BlockType, registry } from "../mod.ts";
+import { AnyBlock, Block, BlockConstructor, BlockDefinition, BlockHelper, BlockPropertiesOf, BlockPropertyDefinitions, BlockType, registry } from "../mod.ts";
 
-type BlockImpl<BLK> = BLK & { setup(config: PartialPropertiesOf<BLK>): void; teardown(): void; };
+type ExtractBlockIF<BLK extends AnyBlock> = BLK extends Block<infer IF> ? IF : never;
+
+export type BlockMethods<BLK> = {
+  run(): void | Promise<void>; setup(config: PartialPropertiesOf<BLK>): void; teardown(): void;
+}
+export type BlockInstance<BLK extends AnyBlock> = BLK & BlockMethods<BLK> & ExtractBlockIF<BLK>;
 
 export class BlockFactory<BLK extends AnyBlock> {
 
@@ -29,7 +34,7 @@ export class BlockFactory<BLK extends AnyBlock> {
     }
   }
 
-  async createInstance(): Promise<BlockImpl<BLK>> {
+  async createInstance(): Promise<BlockInstance<BLK>> {
     const blockDefinition = await this.blockDefinition;
 
     const block = new blockDefinition.ctor();
@@ -56,7 +61,7 @@ export class BlockFactory<BLK extends AnyBlock> {
       block.teardown = func;
     }
 
-    return block as unknown as BlockImpl<BLK>;
+    return block as unknown as BlockInstance<BLK>;
   }
 
   static async #buildCodeBlock<BLK extends AnyBlock>(code: string, propertyDefinitions: BlockPropertyDefinitions<BLK>) {

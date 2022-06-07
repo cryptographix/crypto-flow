@@ -1,12 +1,12 @@
 import { BlockContext } from "./block-context.ts";
-import { Node, LinkInfo, PortInfo } from "../mod.ts";
+import { Node, LinkInfo, PortInfo, Block } from "../mod.ts";
 import { AnyObject } from "../deps.ts";
 import { AbstractBlock } from "./abstract-block.ts";
 
 /**
  * Placeholder object for lazy loading
  */
-export class BlockNode<IF = AnyObject, BLK extends AbstractBlock<IF> = AbstractBlock<IF>> {
+export class BlockNode<IF = AnyObject, BLK extends Block<IF> = AbstractBlock<IF>> {
   #blockContext?: BlockContext<BLK>;
   #outputConnections = new Map<string, Connection[]>();
   #loading: Promise<unknown> | null;

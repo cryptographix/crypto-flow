@@ -85,5 +85,4 @@ test("AES-CBC encrypt/decrypt", async () => {
 
   await cbc.run();
   assertEquals(HEX.toString(plainText), HEX.toString(cbc.cipherText));
-
 });
