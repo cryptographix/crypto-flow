@@ -1,14 +1,13 @@
-import { AbstractBlock, BlockDefinition, BlockHelper } from "../deps.ts";
+import { Block, BlockDefinition, BlockHelper } from "../deps.ts";
 import { IFCryptographicHash } from "../interfaces/cryptographic-hash.ts";
 
 type IN = Pick<IFCryptographicHash, "dataIn">;
 type OUT = Pick<IFCryptographicHash, "hashValue" | "hashSize">;
 
-// class SHA1HashBlock
-//   implements Block<IFCryptographicHash>, IFCryptographicHash {
-//  $helper!: BlockHelper<SHA1HashBlock>;
 class SHA1HashBlock
-  extends AbstractBlock<IFCryptographicHash> implements IFCryptographicHash {
+  implements Block<IFCryptographicHash>, IFCryptographicHash {
+  //
+  $helper!: BlockHelper<SHA1HashBlock>;
 
   dataIn!: Uint8Array;
 

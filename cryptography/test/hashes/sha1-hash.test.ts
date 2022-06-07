@@ -8,6 +8,6 @@ sha1.setup({});
 
 const dataIn = new Array<number>(256).fill(0).map( (_,index,arr)=>arr[index] = index )
 sha1.dataIn = new Uint8Array(dataIn);
-console.log(sha1.hashSize);
+//console.log(sha1.hashSize);
 await sha1.run();
-console.log(sha1.hashValue);
+//console.log(sha1.hashValue);

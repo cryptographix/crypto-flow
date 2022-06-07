@@ -21,7 +21,7 @@ class CBCCipherModeBlock implements AbstractBlock<CBCCipherModeBlock>, IFBlockCi
 
   blockCipher!: IFBlockCipher & AbstractBlock<IFBlockCipher>;
 
-  direction!: "encrypt" | "decrypt";
+  direction: "encrypt" | "decrypt" = "encrypt";
 
   key!: Uint8Array;
 
@@ -34,27 +34,25 @@ class CBCCipherModeBlock implements AbstractBlock<CBCCipherModeBlock>, IFBlockCi
   cipherText!: Uint8Array;
 
   setup(config: PartialPropertiesOf<CBCCipherModeBlock>) {
-    const { blockCipher, key, direction } = config;
+    const { key, direction } = config;
 
-    if (blockCipher) {
-      this.blockCipher = blockCipher;
-    }
+    this.$helper.setup(config);
 
-    if ( this.blockCipher) {
+    if (this.blockCipher) {
       const blockCipher = this.blockCipher;
 
-      blockCipher.$helper.setup( { direction, key });
+      blockCipher.setup({ direction, key });
 
       this.blockSize = blockCipher.blockSize;
     }
-
-    this.$helper.setup(config);
   }
 
   async run(): Promise<void> {
     const { direction, plainText, blockSize, blockCipher } = this;
     const chainVec = this.iv.slice();
     const blockLength = blockSize / 8;
+
+    blockCipher.direction = direction;
 
     const cipherText = new Uint8Array(plainText.length);
 

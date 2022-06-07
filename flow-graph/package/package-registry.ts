@@ -52,60 +52,37 @@ export const registry = {
     return blockDefinition;
   },
 
-  getPackageMap(): Map<string, Package> {
-    return buildPackageMap(new Map(), rootPackage);
+  // getPackageMap(): Map<string, Package> {
+  //   return buildPackageMap(new Map(), rootPackage);
+  // }
+
+  get categories(): Set<string> {
+    const categories = new Set<string>();
+    const packages = buildPackageMap(new Map(), rootPackage);
+
+    packages.forEach((pack) => {
+      pack.blocks.forEach((block, _key) => {
+        if (block.category)
+          categories.add(block.category);
+      });
+    });
+
+    return categories; //Array.from(categories.values());
+  },
+
+  get blocks(): Map<string, BlockDefinition> {
+    const blocks = new Map<string, BlockDefinition>();
+    const packages = buildPackageMap(new Map(), rootPackage);
+
+    packages.forEach((pack) => {
+      pack.blocks.forEach((block, key) => {
+        if (block.category)
+          blocks.set(pack.namespace + '.' + key, block);
+      });
+    });
+
+    return blocks;
   }
-
-  // get categories(): string[] {
-  //   const categories = new Set<string>();
-
-  //   this.registry.forEach((library) => {
-  //     library.registry.forEach((reg, _key) => {
-  //       if (reg.blockInfo.category!)
-  //         categories.add(reg.blockInfo.category);
-  //     });
-  //   });
-
-  //   return Array.from(categories.values());
-  // }
-
-  // get definitions(): BlockDefinition[] {
-  //   const definitions = new Set<BlockDefinition>();
-
-  //   this.registry.forEach((library) => {
-  //     library.registry.forEach((definition, _key) => {
-  //       definition.meta = { iconURL: "static/images/tools.png" };
-
-  //       definitions.add(definition);
-  //     });
-  //   });
-
-  //   return Array.from(definitions.values());
-  // }
-
-  // getByID(id: string): BlockDefinition | null {
-  //   let definition: BlockDefinition | null = null;
-
-  //   this.registry.forEach((library) => {
-  //     if (!definition) {
-  //       library.registry.forEach((defn) => {
-  //         if (defn.id == id) definition = defn;
-  //       });
-  //     }
-  //   });
-
-  //   return definition;
-  // }
-
-  // getByName(name: string): BlockDefinition | undefined {
-  //   let definition: BlockDefinition | undefined;
-
-  //   this.registry.forEach((library) => {
-  //     if (!definition) definition = library.registry.get(name);
-  //   });
-
-  //   return definition;
-  // }
 }
 
 

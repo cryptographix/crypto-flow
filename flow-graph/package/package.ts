@@ -39,7 +39,7 @@ export class Package {
 
   packages!: Map<string, Package>;
 
-  constructor(namespace: string, pack?: PackageInfoNoNamespace) {
+  constructor(namespace: string = "", pack?: PackageInfoNoNamespace) {
     const { name = "", description, blocks = {}, packages = {} } = pack ?? Package.emptyPackage;
 
     this.name = name;
@@ -72,22 +72,19 @@ export class Package {
     this.namespace = "";
   }
 
-  protected lookupPackage(namespace: string, removeLastSegment = false, createIfMissing = false): Package | null {
+  protected lookupPackage(namespace: string, removeLastSegment = false, createIfMissing = false): Package | undefined {
     const names = Package.splitNamespace(namespace, removeLastSegment);
     const packageID = names[0];
 
     let pack = this.packages.get(packageID);
 
-    if (!pack) {
-      if (!createIfMissing)
-        return null;
-
-      pack = new Package(/*this, */Package.extendNamespace(this.namespace, packageID), {});
+    if (!pack && createIfMissing) {
+      pack = new Package(/*this, */Package.extendNamespace(this.namespace, packageID), { name: packageID });
 
       this.addPackage(packageID, pack);
     }
 
-    if (names.length > 1) {
+    if (pack && names.length > 1) {
       return pack.lookupPackage(namespace.slice(packageID.length + 1), removeLastSegment, createIfMissing);
     }
 
@@ -101,7 +98,7 @@ export class Package {
     return this.lookupPackage(namespace, removeLastSegment, true)!;
   }
 
-  getPackage(namespace: string, removeLastSegment = false): Package | null {
+  getPackage(namespace: string, removeLastSegment = false): Package | undefined {
     return this.lookupPackage(namespace, removeLastSegment);
   }
 

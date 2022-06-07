@@ -20,8 +20,7 @@ export class BlockNode<IF = AnyObject, BLK extends AbstractBlock<IF> = AbstractB
       .then((bc) => {
         this.#blockContext = bc;
         this.#loading = null;
-      }
-      );
+      });
   }
 
   loadBlock(): Promise<unknown> {
@@ -48,7 +47,6 @@ export class BlockNode<IF = AnyObject, BLK extends AbstractBlock<IF> = AbstractB
       this.#outputConnections.set(portID, cons);
     }
   }
-
 }
 
 export class Connection {

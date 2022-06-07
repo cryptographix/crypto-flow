@@ -74,7 +74,7 @@ export class ImportDefinition {
  */
 export class PackageLoader {
   constructor(public baseURL: string, public importDefinition: ImportDefinition) {
-    console.log(baseURL, importDefinition.moduleURLs[0]);//
+    //
   }
 
   async loadPackages(): Promise<void> {
@@ -89,9 +89,6 @@ export class PackageLoader {
       const lowerPath = url.pathname.toLowerCase();
 
       let pack: Promise<Package>;
-
-      console.log("base", this.baseURL)
-      console.log("Importing: " + url.toString())
 
       if (lowerPath.endsWith('.js')) {
         pack = import(url.toString())

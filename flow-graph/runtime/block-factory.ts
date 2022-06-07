@@ -1,8 +1,7 @@
-import { AnyInterface, PropertiesOf, PropertyDefinition, PropertyValue, Schema } from "../deps.ts";
+import { AnyInterface, PartialPropertiesOf, PropertiesOf, PropertyDefinition, PropertyValue, Schema } from "../deps.ts";
 import { AnyBlock, BlockConstructor, BlockDefinition, BlockHelper, BlockPropertiesOf, BlockPropertyDefinitions, BlockType, registry } from "../mod.ts";
 
-//type BLKInterfaceOf<BLK> = BLK extends Block<infer IF> ? IF : never;
-//type BlockImpl<BLK> = BLK// & { setup(config: PartialPropertiesOf<BLK>): void; teardown(): void; };
+type BlockImpl<BLK> = BLK & { setup(config: PartialPropertiesOf<BLK>): void; teardown(): void; };
 
 export class BlockFactory<BLK extends AnyBlock> {
 
@@ -30,10 +29,10 @@ export class BlockFactory<BLK extends AnyBlock> {
     }
   }
 
-  async createInstance(initData?: Partial<BlockPropertiesOf<BLK>>): Promise<BLK> {
+  async createInstance(): Promise<BlockImpl<BLK>> {
     const blockDefinition = await this.blockDefinition;
 
-    const block = new blockDefinition.ctor(initData);
+    const block = new blockDefinition.ctor();
     const blockHelper = new BlockHelperImpl(block, blockDefinition);
 
     Object.defineProperties(block, {
@@ -45,21 +44,19 @@ export class BlockFactory<BLK extends AnyBlock> {
       }
     });
 
-    // if (!block.setup) {
-    //   const func = (config: PartialPropertiesOf<BLK>) => { return block.$helper.setup(config!); };
+    if (!block.setup) {
+      const func = (config: PartialPropertiesOf<BLK>) => { return block.$helper.setup(config!); };
 
-    //   block.setup = func;
-    // }
+      block.setup = func;
+    }
 
-    // if (!block.teardown) {
-    //   const func = () => {
-    //     (block as { $helper?: AnyInterface }).$helper = undefined
-    //   };
+    if (!block.teardown) {
+      const func = () => { block.$helper.teardown(); };
 
-    //   block.teardown = func;
-    // }
+      block.teardown = func;
+    }
 
-    return block;
+    return block as unknown as BlockImpl<BLK>;
   }
 
   static async #buildCodeBlock<BLK extends AnyBlock>(code: string, propertyDefinitions: BlockPropertyDefinitions<BLK>) {

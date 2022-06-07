@@ -1,5 +1,3 @@
-console.log("test package.js loaded")
-
 import { AbstractBlock } from "../deps.ts";
 
 class BLK1 extends AbstractBlock { }

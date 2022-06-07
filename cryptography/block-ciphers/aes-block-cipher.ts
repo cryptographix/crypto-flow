@@ -1,16 +1,17 @@
-import {
-  AbstractBlock,
-  BlockDefinition} from "../deps.ts";
+import { Block, BlockDefinition, BlockHelper } from "../deps.ts";
 import { IFBlockCipher } from "../interfaces/block-cipher.ts";
-
-// type IN = Pick<IFBlockCipher, "plainText" | "key" | "direction">;
-// type OUT = Pick<IFBlockCipher, "cipherText" | "blockSize">;
 
 const AES_BLOCK_BYTES = 16;
 
-class AESBlockCipherBlock extends AbstractBlock<AESBlockCipherBlock> implements IFBlockCipher {
-  // 
-  //readonly $helper!: BlockHelper<this>;
+/**
+ * Uses WebCrypto AES implementation
+ * 
+ * Since WebCrypto doesn't have an AES-ECB algorithm, we use AES-CBC on a single block
+ * and strip off/forge the second block that is generated due to obrigatory PKCS5 padding
+ */
+class AESBlockCipherBlock
+  implements Block<IFBlockCipher>, IFBlockCipher {
+  readonly $helper!: BlockHelper<this>;
 
   //
   direction: "encrypt" | "decrypt" = "encrypt";
@@ -37,11 +38,15 @@ class AESBlockCipherBlock extends AbstractBlock<AESBlockCipherBlock> implements 
 
     if (this.direction == "encrypt")
       // encrypt, and remove last block
-      this.cipherText = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-CBC", iv: iv }, cryptoKey, plainText)).slice(0, len);
+      this.cipherText = new Uint8Array(await crypto.subtle.encrypt(
+        { name: "AES-CBC", iv: iv },
+        cryptoKey,
+        plainText)
+      ).slice(0, len);
     else {
       const len = plainText.length;
 
-      // GAMBI to use WebCrypto AES-CBC as AES-ECB
+      // Worksaround to use WebCrypto AES-CBC as AES-ECB
       const plain = new Uint8Array(len + AES_BLOCK_BYTES);
       plain.set(plainText);
 
@@ -50,10 +55,11 @@ class AESBlockCipherBlock extends AbstractBlock<AESBlockCipherBlock> implements 
       for (let i = 0; i < AES_BLOCK_BYTES; ++i)
         fake[i] = plain[len - AES_BLOCK_BYTES + i] ^ 0x10;
 
-      const fakeDecrypted = await crypto.subtle.encrypt({
-        name: "AES-CBC",
-        iv: new Uint8Array(AES_BLOCK_BYTES)
-      },
+      const fakeDecrypted = await crypto.subtle.encrypt(
+        {
+          name: "AES-CBC",
+          iv: new Uint8Array(AES_BLOCK_BYTES)
+        },
         cryptoKey,
         fake);
 

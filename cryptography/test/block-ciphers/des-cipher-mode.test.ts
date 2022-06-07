@@ -1,5 +1,6 @@
 import { BlockFactory } from "../../deps.ts";
 import { DESBlockCipher } from "../../mod.ts";
+import { test, assertEquals } from '../test-harness.ts';
 
 const HEX = {
   toString: (data: Uint8Array): string => Array.from(data).map((v) => ("00" + v.toString(16)).slice(-2)).join(' ').toUpperCase(),
@@ -17,24 +18,55 @@ const HEX = {
   }
 }
 
-const ecb = await BlockFactory.for(DESBlockCipher).createInstance();
+test("DES ECB", async () => {
+  const ecb = await BlockFactory.for(DESBlockCipher).createInstance();
 
-ecb.setup({
-  direction: "encrypt",
-  key: HEX.parse("01 01 01 01  01010101"),
-  plainText: new Uint8Array([0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+  ecb.setup({
+    direction: "encrypt",
+    key: HEX.parse("01 01 01 01  01010101"),
+    plainText: new Uint8Array([0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+  });
+
+  await ecb.run();
+
+  assertEquals(ecb.cipherText, new Uint8Array([0x95, 0xF8, 0xA5, 0xE5, 0xDD, 0x31, 0xD9, 0x00]));
 });
 
+test("DES2 ECB", async () => {
+  const ecb = await BlockFactory.for(DESBlockCipher).createInstance();
 
-console.log("DES = ", (ecb.run(), HEX.toString(ecb.cipherText))) //[0x95, 0xF8, 0xA5, 0xE5, 0xDD, 0x31, 0xD9, 0x00]
+  ecb.setup({
+    direction: "encrypt",
+    key: HEX.parse("01 01 01 01  01010101 02020202 02020202"),
+    plainText: new Uint8Array([0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+  });
+
+  await ecb.run();
+
+  assertEquals(ecb.cipherText, HEX.parse("59 A4 39 8D 77 53 AF F4"));
+
+  ecb.setup({
+    direction: "encrypt",
+    key: HEX.parse("01 01 01 01  01010101 02030203 02030202 FEDCBA9876543210"),
+    plainText: new Uint8Array([0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+  });
+
+  await ecb.run();
+  console.log(HEX.toString(ecb.cipherText));
+
+  assertEquals(ecb.cipherText, HEX.parse("82 62 B4 14 65 A5 16 78"));
+
+});
 
 // const cbc = BlockFactory.for(CBCBlockCipherMode).createInstance();
 
 // cbc.setup({ blockCipher: BlockFactory.for(DESBlockCipher).createInstance(), iv: new Uint8Array(16) } );
 // console.log(cbc.blockSize, cbc.iv);
 // console.log(cbc.blockCipher.direction);
+test("DES ECB NIST Vectors", async () => {
+  const ecb = await BlockFactory.for(DESBlockCipher).createInstance();
 
-const desTestText = `
+  const desTestText = `
 # Test vectors for DES Electronic Code Book (ECB)
 # implementation, derived from:
 #   "Validating the Correctness of Hardware 
@@ -362,40 +394,38 @@ encrypt
  018310DC409B26D6 1D9D5C5018F728C2 5F4C038ED12B2E41
  1C587F1C13924FEF 305532286D6F295A 63FAC0D034D9F793`;
 
-const testDataDES = desTestText.split('\n').map(line => line.trim()).filter(line => line[0] != '#' && line.length > 0);
+  const testDataDES = desTestText.split('\n').map(line => line.trim()).filter(line => line[0] != '#' && line.length > 0);
 
-let ok  = 0, count = 0;
-let direction: "encrypt"|"decrypt"|null = null;
-for( const line of testDataDES) {
-  //console.log(line, line.length)
-  if (line == "encrypt" || line=="decrypt") {
-    direction = line;
-  }
-  else {
-    const strs = line.split(' ');
-
-    if (strs.length == 3 && direction) {
-      count++;
-      ecb.setup({
-        direction,
-        plainText: HEX.parse(strs[1]),
-        key: HEX.parse(strs[0]),
-      });
-      
-      ecb.run();
-
-      //console.log(HEX.toString(ecb.cipherText),HEX.toString(HEX.parse(strs[1])) )
-      if (HEX.toString(ecb.cipherText) != HEX.toString(HEX.parse(strs[2]))) {
-        console.log( "FAIL", line, ' => ', HEX.toString(ecb.cipherText) );
-      }
-      else ++ok;
+  let ok = 0, count = 0;
+  let direction: "encrypt" | "decrypt" | null = null;
+  for (const line of testDataDES) {
+    //console.log(line, line.length)
+    if (line == "encrypt" || line == "decrypt") {
+      direction = line;
     }
     else {
-      console.log( "ERROR", line)
-    }
+      const strs = line.split(' ');
 
+      if (strs.length == 3 && direction) {
+        count++;
+        ecb.setup({
+          direction,
+          plainText: HEX.parse(strs[1]),
+          key: HEX.parse(strs[0]),
+        });
+
+        ecb.run();
+
+        if (HEX.toString(ecb.cipherText) != HEX.toString(HEX.parse(strs[2]))) {
+          console.log("FAIL", line, ' => ', HEX.toString(ecb.cipherText));
+        }
+        else ++ok;
+      }
+      else {
+        console.log("ERROR", line)
+      }
+    }
   }
 
-}
-
-console.log("DES: PASS ", ok, " of ", count);
+  assertEquals(ok, count);
+});

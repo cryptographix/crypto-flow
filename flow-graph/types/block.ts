@@ -61,7 +61,7 @@ export type AnyBlock = Block<AnyInterface>;
  * Block Constructor shape
  */
 export interface BlockConstructor<BLK extends AnyBlock> {
-  new(initData?: Partial<BlockPropertiesOf<BLK>>): BLK;
+  new(): BLK;
 }
 
 export type BlockType =

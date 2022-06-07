@@ -11,7 +11,7 @@ export const packageDefinition: PackageDefinition = {
     printer: {
       type: "inline",
       name: "printer",
-      category: "",
+      category: "outputs",
       propertyDefinitions: {
         data: { dataType: "string", accessors: "set" },
       },
@@ -27,7 +27,7 @@ export const packageDefinition: PackageDefinition = {
     printer2: {
       type: "block",
       name: "printer2",
-      category: "",
+      category: "outputs",
       propertyDefinitions: {
         data: { dataType: "string", accessors: "set" },
       },
