@@ -1,5 +1,5 @@
 import { ISchema } from "./schema.ts";
-import { IConstructable } from "./type-helpers.ts";
+import { Constructable } from "./type-helpers.ts";
 
 class NullClass {}
 
@@ -7,11 +7,11 @@ export class SchemaStorage {
   // deno-lint-ignore ban-types
   protected items = new Map<object, ISchema>();
 
-  public has(target: IConstructable) {
+  public has(target: Constructable) {
     return this.items.has(target); // || !!this.findParentSchema(target);
   }
 
-  public get<S extends ISchema>(target: IConstructable): S {
+  public get<S extends ISchema>(target: Constructable): S {
     const schema = this.items.get(target); // || this.findParentSchema(target);
 
     if (!schema) {
@@ -22,7 +22,7 @@ export class SchemaStorage {
   }
 
   public ensure<S extends ISchema>(
-    target: IConstructable,
+    target: Constructable,
     type = "object"
   ): S {
     let schema: ISchema;
@@ -41,7 +41,7 @@ export class SchemaStorage {
   /**
    * Creates new schema
    */
-  protected create(target: IConstructable, type: string): ISchema {
+  protected create(target: Constructable, type: string): ISchema {
     // Initialize default schema
     const schema = {
       type: type,
@@ -64,7 +64,7 @@ export class SchemaStorage {
     return schema;
   }
 
-  public set(target: IConstructable, schema: ISchema) {
+  public set(target: Constructable, schema: ISchema) {
     this.items.set(target, schema);
 
     return this;

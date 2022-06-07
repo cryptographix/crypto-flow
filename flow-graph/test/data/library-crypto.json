@@ -1,0 +1,45 @@
+{
+  "libraries": [
+    {
+      "name": "Base Digital Cryptographic Building Blocks",
+      "namespace": "org.cryptographix.cryptography",
+      "description": "A set of Cryptography Blocks for ",
+      "imports": {
+        "org.cryptographix.cryptography.base@1.0": {
+          "url": "https://lib.cryptographix.org/v1.0/cryptography-base.js",
+          "import": [
+            "IFBlockCipher",
+            "AESBlockCipher",
+            "DESBlockCipher"
+          ]
+        }
+      },
+      "packages": {},
+      "types": {},
+      "blocks": {
+        "block-name-1": {
+          "type": "code",
+          "code": "... can use ES6 imports",
+          "properties": {
+            "prop-1": {},
+            "prop-2": {}
+          }
+        },
+        "block-name-2": {
+          "type": "flow",
+          "flow": {
+            "nodes": "...",
+            "ports": {
+              "port-1": {
+                "type": "in"
+              },
+              "port-2": {
+                "type": "out"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

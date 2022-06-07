@@ -1,6 +1,4 @@
-import { AnyObject, IConstructable, JSONObject, PropertiesOf } from "./type-helpers.ts";
-
-let x: PropertiesOf<null>;
+import { AnyObject, Constructable, JSONObject, PropertiesOf } from "./type-helpers.ts";
 
 export type PropertyValue =
   | boolean
@@ -13,7 +11,7 @@ export type PropertyValue =
 /**
  *
  */
-export type IPropertyInfo<T = unknown> = {
+export type PropertyDefinitionBase<T = unknown> = {
   //dataType: string;
 
   // friendly name for user
@@ -42,7 +40,9 @@ export type IPropertyInfo<T = unknown> = {
 
   // custom validator
   validator?: (value: unknown) => void;
-} & (
+}
+
+export type PropertyDefinition<T = unknown> = PropertyDefinitionBase<T> & (
   | {
       /**
        * A boolean property
@@ -119,8 +119,9 @@ export type IPropertyInfo<T = unknown> = {
       /**
        * An object
        */
-      dataType: IConstructable<T>;
+      dataType: "class";
 
+      ctor: Constructable;
       //
       isTree?: boolean;
     }
@@ -130,14 +131,14 @@ export type IPropertyInfo<T = unknown> = {
        */
       dataType: "slot";
 
-      implements: symbol;
+      implements?: symbol;
     }
 );
 
 export type NoProperties = Record<never, PropertyValue>;
 
-export type PropertyDataTypes = Exclude<IPropertyInfo["dataType"], string>;
-export type PropertyInfos<IF> = Record<keyof IF, IPropertyInfo>;
+export type PropertyDataTypes = "boolean"|"string"|"integer"|"u8[]"|"enum"|"bignum"; //Exclude<PropertyDefinition["dataType"], string>;
+export type PropertyInfos<IF> = Record<keyof IF, PropertyDefinition>;
 export type PropertyKey<IF> = keyof PropertiesOf<IF>;
 export type PropertyValues<IF> = Record<keyof IF, PropertyValue>;
 
@@ -147,5 +148,5 @@ export type PropertyValues<IF> = Record<keyof IF, PropertyValue>;
 export interface IPropReference<T = unknown> {
   target: T;
   key: string;
-  propertyInfo: IPropertyInfo<T[keyof T]>;
+  propertyInfo: PropertyDefinition<T[keyof T]>;
 }

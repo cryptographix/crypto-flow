@@ -1,14 +1,14 @@
-import impProject from "../data/flow1.json" assert { type: "json"};
-import { getLoader } from "../data/test-blocks.ts";
+import impProject from "../data/project-1.json" assert { type: "json"};
 
-import { FlowRunner, Project } from "../deps.ts";
+import { FlowRunner, Project, registry } from "../deps.ts";
 
-const project = Project.parseProject(impProject);
-const loader = getLoader();
+const project = Project.parseProject(Deno.cwd(), impProject);
 
 const runner = new FlowRunner(project.getRootFlow(true)!);
 
-await runner.setupNetwork(loader);
+registry.registerPackage((await import("../data/test-package-1.ts")).packageDefinition);
+
+await runner.setupNetwork();
 
 for (const val of [true, false]) {
   runner.nodes.get("inverter")?.context.setInputs({ input: val } as Record<string,unknown> );

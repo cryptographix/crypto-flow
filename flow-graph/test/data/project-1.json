@@ -39,7 +39,7 @@
             "type": "block",
             "name": "out",
             "block": {
-              "name": "printer"
+              "name": "test.blocks.printer"
             },
             "ports": {
               "data": {
@@ -49,6 +49,24 @@
             }
           }
         }
+      }
+    },
+    "imports": {
+      "library.1": "./library1.json",
+      "library.2-sel": {
+        "url": "./library2.js",
+        "import": "AESBlockCipher, DESBlockCipher"
+      },
+      "library.12": [
+        "./library1.json",
+        "./library2.js"
+      ],
+      "library.12-sel": {
+        "url": [
+          "./library1.json",
+          "./library2.js"
+        ],
+        "import": "AESBlockCipher, DESBlockCipher"
       }
     }
   }

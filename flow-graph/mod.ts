@@ -1,15 +1,19 @@
-export * from "./graph/project.ts";
+export * from "./types/block.ts"
 export * from "./graph/graph.ts";
 export * from "./graph/node.ts";
 export * from "./graph/link.ts";
 export * from "./graph/port.ts";
-export * from "./graph/project-validator.ts";
 
-export * from "./block/block.ts";
-export * from "./block/block-loader.ts";
-export * from "./block/block-registry.ts"
+export * from "./package/package.ts"
+export * from "./package/package-loader.ts";
+export * from "./package/package-registry.ts"
 
+export * from "./runtime/abstract-block.ts";
+export * from "./runtime/block-factory.ts";
 export * from "./runtime/block-context.ts"
 export * from "./runtime/block-node.ts";
 export * from "./runtime/flow-runner.ts";
+
+export * from "./project/project.ts";
+export * from "./project/project-validator.ts";
 

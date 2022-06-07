@@ -1,5 +1,5 @@
-import { AnyObject, ByteArray, EmptyObject, IConstructable } from "./type-helpers.ts";
-import { IPropertyInfo, PropertyValue } from "./property.ts";
+import { AnyInterface, AnyObject, ByteArray, Constructable } from "./type-helpers.ts";
+import { PropertyDefinition, PropertyValue } from "./property.ts";
 import { schemaStore } from "./schema-store.ts";
 
 /**
@@ -19,7 +19,7 @@ export interface ISchema {
   namespace?: string;
 
   //
-  properties: Record<string, IPropertyInfo>;
+  properties: Record<string, PropertyDefinition>;
 }
 
 /**
@@ -33,7 +33,7 @@ export abstract class Schema {
     // deno-lint-ignore ban-types
     constructor: Function;
   }): TSchema {
-    const cls = target.constructor as IConstructable;
+    const cls = target.constructor as Constructable;
 
     const schema = schemaStore.ensure<TSchema>(cls);
 
@@ -44,7 +44,7 @@ export abstract class Schema {
    *
    */
   static getSchemaForClass<TO, TSchema extends ISchema>(
-    target: IConstructable<TO>
+    target: Constructable<TO>
   ): TSchema {
     const schema = schemaStore.ensure<TSchema>(target);
 
@@ -55,8 +55,8 @@ export abstract class Schema {
    *
    */
   static initObjectFromClass<TO extends AnyObject>(
-    target: IConstructable<TO>,
-    initObject: Partial<TO> = EmptyObject
+    target: Constructable<TO>,
+    initObject: Partial<TO> = {}
   ): TO {
     const schema = schemaStore.ensure<ISchema>(target);
     const obj = new target();
@@ -79,8 +79,8 @@ export abstract class Schema {
     return obj;
   }
 
-  static initPropertyFromPropertyType<TO extends AnyObject = EmptyObject>(
-    propInfo: IPropertyInfo,
+  static initPropertyFromPropertyType<TO extends AnyInterface = AnyInterface>(
+    propInfo: PropertyDefinition,
     obj: TO,
     key: keyof TO,
     initValue?: PropertyValue,
@@ -95,7 +95,7 @@ export abstract class Schema {
 
     if (typeof propInfo.dataType !== "string") {
       // initialize sub-object
-      value = Schema.initObjectFromClass(propInfo.dataType as IConstructable<TO>, value as TO);
+      value = Schema.initObjectFromClass(propInfo.dataType as Constructable<TO>, value as TO);
     } else if (value === undefined && !propInfo.optional && useDefaultForType) {
       // no initial or default value .. use default for type
       switch (propInfo.dataType) {
@@ -128,7 +128,7 @@ export abstract class Schema {
 
   static getPropertiesForObject(
     target: AnyObject,
-    filterFn?: (item: IPropertyInfo) => boolean
+    filterFn?: (item: PropertyDefinition) => boolean
   ) {
     const schema = Schema.getSchemaForObject(target);
 
@@ -143,7 +143,7 @@ export abstract class Schema {
     return new Map(props);
   }
 
-  static getPropertiesForClass(target: IConstructable) {
+  static getPropertiesForClass(target: Constructable) {
     const schema = schemaStore.ensure<ISchema>(target);
 
     return Object.entries(schema.properties);

@@ -1,13 +1,13 @@
+import { packageDefinition } from './../data/test-package-1.ts';
 import impProject from "../data/flow1.js";
-import { getLoader } from "../data/test-blocks.ts";
-import { Block, BlockContext, Node, PropertiesOf } from "../deps.ts";
+import { BlockContext, Node, registry } from "../deps.ts";
 import { Test } from "../deps.ts";
 
-const loader = getLoader();
+const _pack = registry.registerPackage(packageDefinition);
 
 const flow = impProject.project.flows["invert-bit"];
-const invertorCtx = await BlockContext.fromCode<{input:boolean, out?: boolean}>(Node.parseNode("", flow.nodes["inverter"]));
-const loggerCtx = await BlockContext.fromLoader(loader, "printer");
+const invertorCtx = await BlockContext.fromNode<{input:boolean, out?: boolean}>(Node.parseNode(null, "", flow.nodes["inverter"]));
+const loggerCtx = await BlockContext.forBlockName<{data?: boolean}>("test.blocks.printer");
 
 function logReadyState(text: string, trig: number) {
   console.log(`${text} inv.ready=${invertorCtx.canTrigger(trig)} log.ready=${loggerCtx.canTrigger(trig)}`);

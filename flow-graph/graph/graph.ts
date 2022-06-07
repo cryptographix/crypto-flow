@@ -1,24 +1,21 @@
-import { IProject } from "./project.ts";
-import { Node, INode } from "./node.ts";
-import { Port, IPort } from "./port.ts";
+import { Node, NodeInfo } from "./node.ts";
+import { Port, PortInfo } from "./port.ts";
 import { JSONObject } from "../deps.ts";
+import { IProject } from "../project/project.ts";
 
-export interface IGraph<Node extends INode = INode, Port extends IPort = IPort>
-  extends INode<Port> {
+export interface GraphInfo<Node extends NodeInfo = NodeInfo, Port extends PortInfo = PortInfo>
+  extends NodeInfo<Port> {
   nodes: Map<string, Node>;
 }
 
 /**
  * Flow represents, at run-time, a flow-graph consisting of connected nodes.
  */
-export class Graph extends Node implements IGraph<Node, Port> {
+export class Graph extends Node implements GraphInfo<Node, Port> {
   nodes: Map<string, Node>;
 
-  constructor(
-    public project?: IProject,
-    graph: IGraph = Graph.emptyGraph
-  ) {
-    super(graph);
+  constructor(private project: IProject|undefined=undefined, graph: GraphInfo = Graph.emptyGraph) {
+    super(null, graph);
 
     const { nodes } = graph;
 
@@ -27,16 +24,16 @@ export class Graph extends Node implements IGraph<Node, Port> {
     );
   }
 
-  static parseGraph(project: IProject, id: string, obj: JSONObject): Graph {
+  static parseGraph(project: IProject|undefined, id: string, obj: JSONObject): Graph {
     const graph = new Graph(project, {
-      ...Node.parseNode(id, obj),
+      ...Node.parseNode(null, id, obj),
       nodes: new Map<string, Node>(),
     });
 
     Object.entries((obj.nodes as JSONObject[]) ?? {}).reduce((nodes, item) => {
       const [nodeID, node] = item;
 
-      nodes.set(nodeID, Node.parseNode(nodeID, node));
+      nodes.set(nodeID, Node.parseNode(graph, nodeID, node));
 
       return nodes;
     }, graph.nodes);
@@ -67,7 +64,7 @@ export class Graph extends Node implements IGraph<Node, Port> {
     });
   }
 
-  static readonly emptyGraph: IGraph = {
+  static readonly emptyGraph: GraphInfo = {
     ...Node.emptyNode,
     nodes: new Map(),
   };

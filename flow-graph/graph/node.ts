@@ -1,5 +1,6 @@
-import { JSONObject } from "../deps.ts";
-import { Port, IPort } from "./port.ts";
+import { JSONObject, JSONValue } from "../deps.ts";
+import { Graph } from "./graph.ts";
+import { Port, PortInfo } from "./port.ts";
 
 export type NodeType =
   | "none"
@@ -10,54 +11,62 @@ export type NodeType =
   | "input"
   | "output";
 
-export interface INode<Port extends IPort = IPort> {
+export interface NodeViewInfo {
+  // x-offset, relative to enclosing flow
+  x?: number;
+
+  // y-offset, relative to enclosing flow
+  y?: number;
+
+  w?: number;
+
+  h?: number;
+
+  color?: string;
+}
+
+export interface NodeBlockInfo {
+  // namespaced block-name
+  name?: string,
+
+  // for "code" types, 
+  code?: string;
+}
+
+export interface NodeInfo<Port extends PortInfo = PortInfo> {
   type: NodeType;
 
   id: string;
 
-  block: JSONObject | null;
-
-  name: string;
+  name?: string;
 
   ports: Map<string, Port>;
+
+  block?: NodeBlockInfo;
+
+  view?: NodeViewInfo;
 }
 
-export interface NodeFacade<N extends Node> {
-  node: N;
-
-  config: Record<string, unknown>;
-
-  readonly inPorts: Map<string, Port>;
-
-  readonly outPorts: Map<string, Port>;
-}
-
-const emptyNode: INode = {
-  type: "none",
-  id: "",
-  block: {},
-  name: "",
-  ports: new Map(),
-};
-
-export class Node implements INode<Port> {
+export class Node {
   type: NodeType;
 
   id: string;
 
-  name: string;
+  name?: string;
 
-  block: JSONObject | null;
+  block: NodeBlockInfo;
 
   ports: Map<string, Port>;
 
-  constructor(node: INode = Node.emptyNode ) {
-    const { type, id, name, block = null, ports } = node;
+  view: NodeViewInfo;
+
+  constructor(public graph: Graph | null, node: NodeInfo = Node.emptyNode) {
+    const { type, id, name, block = {}, ports, view } = node;
 
     this.type = type;
     this.id = id;
-    this.block = block;
     this.name = name;
+    this.block = block;
 
     this.ports = new Map(
       Object.entries(ports).map(([_portID, port]) => [
@@ -65,17 +74,28 @@ export class Node implements INode<Port> {
         new Port(this, port),
       ])
     );
+
+    this.view = view ?? { x: 0, y: 0, w: 0, h: 0, color: "white" };
   }
 
-  static parseNode(id: string, obj: JSONObject): Node {
-    const { type, name, block } = obj;
+  static parseViewInfo(viewVal: JSONValue): NodeViewInfo {
+    return JSONValue.asObject<NodeViewInfo>(viewVal, {});
+  }
 
-    const node = new Node({
-      type: type as NodeType,
+  static parseBlockInfo(blockVal: JSONValue): NodeBlockInfo {
+    return JSONValue.asObject<NodeBlockInfo>(blockVal, {});
+  }
+
+  static parseNode(graph: Graph | null, id: string, obj: JSONObject): Node {
+    const { type, name, view, block } = obj;
+
+    const node = new Node(graph, {
+      type: JSONValue.asString(type) as NodeType,
       id,
-      block: block as JSONObject,
-      name: name as string,
+      block: Node.parseBlockInfo(block),
+      name: JSONValue.asString(name),
       ports: new Map<string, Port>(),
+      view: Node.parseViewInfo(view),
     });
 
     Object.entries((obj.ports as JSONObject[]) ?? {}).reduce((ports, item) => {
@@ -90,7 +110,7 @@ export class Node implements INode<Port> {
   }
 
   toObject(): JSONObject {
-    const { type, name, block } = this;
+    const { type, name, block, view } = this;
 
     const ports = Array.from(this.ports).reduce((ports, [portID, port]) => {
       ports[portID] = port.toObject();
@@ -98,19 +118,18 @@ export class Node implements INode<Port> {
       return ports;
     }, {} as JSONObject);
 
-    return JSONObject.removeNullOrUndefined({
+    return JSONObject.clean({
       type,
       name,
-      block,
+      block: JSONObject.clean({ ...block }),
       ports,
+      view: JSONObject.clean({ ...view }),
     });
   }
 
-  static readonly emptyNode: INode = {
+  static readonly emptyNode: NodeInfo = Object.freeze({
     type: "none",
     id: "",
-    block: {},
-    name: "",
     ports: new Map(),
-  };
+  });
 }

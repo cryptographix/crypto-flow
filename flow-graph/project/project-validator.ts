@@ -1,12 +1,13 @@
-import { IGraph, INode, IPort, IProject } from "../mod.ts";
+import { Graph, Node, PortInfo } from '../mod.ts';
+import { Project } from './project.ts'
 
 export type AnyFlowError = InvalidFlowError;
 
 export type ValidationContext = {
-  project: IProject;
-  flow?: IGraph;
-  node?: INode;
-  port?: IPort;
+  project: Project;
+  flow?: Graph;
+  node?: Node;
+  port?: PortInfo;
 };
 
 export interface InvalidFlowError extends ValidationContext {
@@ -15,18 +16,18 @@ export interface InvalidFlowError extends ValidationContext {
   message: string;
 }
 
-export function checkProject(project: IProject): AnyFlowError[] {
+export function checkProject(project: Project): AnyFlowError[] {
   const context: ValidationContext = {
     project,
   };
 
-  return Array.from(project.flows).flatMap(([_flowID, flow]) => {
+  return Array.from(project.flows.entries()).flatMap(([_flowID, flow]) => {
     return checkFlow(flow, { ...context, flow });
   });
 }
 
 export function checkFlow(
-  flow: IGraph,
+  flow: Graph,
   context: ValidationContext,
 ): AnyFlowError[] {
   let errors: AnyFlowError[] = [];
@@ -47,7 +48,7 @@ export function checkFlow(
 }
 
 export function checkNode(
-  node: INode,
+  node: Node,
   context: ValidationContext,
 ): AnyFlowError[] {
   let errors: AnyFlowError[] = [];
@@ -62,7 +63,7 @@ export function checkNode(
 }
 
 export function checkPort(
-  port: IPort,
+  port: PortInfo,
   context: ValidationContext,
 ): AnyFlowError | AnyFlowError[] {
   let errors: AnyFlowError[] = [];

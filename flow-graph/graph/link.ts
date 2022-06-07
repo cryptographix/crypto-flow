@@ -1,7 +1,7 @@
 import { JSONObject } from "../deps.ts";
 import { Port, Node } from "../mod.ts";
 
-export interface ILink {
+export interface LinkInfo {
   type?: string;
 
   nodeID: string;
@@ -9,7 +9,7 @@ export interface ILink {
   portID: string;
 }
 
-export class Link implements ILink {
+export class Link implements LinkInfo {
   type?: string;
 
   portID: string;
@@ -18,7 +18,7 @@ export class Link implements ILink {
 
   node!: Node;
 
-  constructor(public port: Port, link: ILink) {
+  constructor(public port: Port, link: LinkInfo) {
     const { type, portID, nodeID } = link;
 
     this.type = type;

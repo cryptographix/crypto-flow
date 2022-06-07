@@ -1,0 +1,44 @@
+{
+  "library": {
+    "name": "Sean's user Library",
+
+    "namespace": "@sean.libraries",
+
+    "imports": {
+      "org.cryptographix.blocks.payments": "https://lib.cryptographix.org/v1/payments.js",
+      "org.cryptographix.blocks.cryptography": {
+        "url": "https://lib.cryptographix.org/v1/cryptography.js",
+        "import": "AESBlockCipher, DESBlockCipher"
+      }
+    },
+
+    "packages": {},
+
+    "types": {},
+
+    "blocks": {
+      "block-name-1": {
+        "type": "code",
+        "code": "... can use ES6 imports",
+        "properties": {
+          "prop-1": {},
+          "prop-2": {}
+        }
+      },
+      "block-name-2": {
+        "type": "flow",
+        "flow": {
+          "nodes": "...",
+          "ports": {
+            "port-1": {
+              "type": "in"
+            },
+            "port-2": {
+              "type": "out"
+            }
+          }
+        }
+      }
+    }
+  }
+}

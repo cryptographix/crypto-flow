@@ -1,7 +1,7 @@
 import impProject from "../data/flow1.js";
 import { checkProject, Project } from "../deps.ts";
 
-const project = Project.parseProject(impProject.project);
+const project = Project.parseProject(".", impProject.project);
 
 console.log(project);
 

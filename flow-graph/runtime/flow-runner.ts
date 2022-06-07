@@ -1,5 +1,5 @@
-import { PropertyValues } from "../deps.ts";
-import { Block, BlockLoader, Connection } from "../mod.ts";
+import { AnyInterface, PropertyValues } from "../deps.ts";
+import { Connection } from "../mod.ts";
 import { Graph } from "../mod.ts";
 import { BlockNode } from "./block-node.ts";
 
@@ -7,19 +7,19 @@ export class FlowRunner {
   #triggerID = 0;
   #nodes = new Map<string, BlockNode>();
 
-  readonly root: BlockNode;
+  //readonly root: BlockNode;
 
   get nodes() {
     return this.#nodes;
   }
 
-  #buildNetwork(flow: Graph, loader?: BlockLoader) {
+  #buildNetwork(flow: Graph) {
     // restart
     this.#nodes.clear();
 
     // create a BlockNode for each Node
     flow.nodes.forEach((node, key) => {
-      const blockNode = new BlockNode(node, loader);
+      const blockNode = new BlockNode(node);
 
       this.#nodes.set(key, blockNode);
     });
@@ -64,11 +64,11 @@ export class FlowRunner {
    * 
    */
   constructor(public readonly flow: Graph) {
-    this.root = new BlockNode(flow);
+    //this.root = new BlockNode(flow);
   }
 
-  setupNetwork(loader?: BlockLoader) {
-    this.#buildNetwork(this.flow, loader);
+  setupNetwork() {
+    this.#buildNetwork(this.flow);
 
     this.#triggeredNodes = [];
 
@@ -122,7 +122,7 @@ export class FlowRunner {
             for (const con of cons) {
               const targetNode = con.targetNode;
 
-              const values = { [con.link.portID]: output[con.port.id as keyof PropertyValues<Block>] };
+              const values = { [con.link.portID]: output[con.port.id as keyof PropertyValues<AnyInterface>] };
 
               targetNode.context.setInputs(values);
             }
