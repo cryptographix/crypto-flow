@@ -1,7 +1,7 @@
 import { packageDefinition } from './../data/test-package-1.ts';
 import impProject from "../data/flow1.js";
 import { BlockContext, Node, registry } from "../deps.ts";
-import { Test } from "../deps.ts";
+import { test,assertEquals } from "../test-harness.ts";
 
 const _pack = registry.registerPackage(packageDefinition);
 
@@ -9,33 +9,68 @@ const flow = impProject.project.flows["invert-bit"];
 const invertorCtx = await BlockContext.fromNode<{input:boolean, out?: boolean}>(Node.parseNode(null, "", flow.nodes["inverter"]));
 const loggerCtx = await BlockContext.forBlockName<{data?: boolean}>("test.blocks.printer");
 
-function logReadyState(text: string, trig: number) {
-  console.log(`${text} inv.ready=${invertorCtx.canTrigger(trig)} log.ready=${loggerCtx.canTrigger(trig)}`);
-}
+// function logReadyState(text: string, trig: number) {
+//   console.log(`${text} inv.ready=${invertorCtx.canTrigger(trig)} log.ready=${loggerCtx.canTrigger(trig)}`);
+// }
 
-Test.test("Context ready states", async ()=> {
+test("Context: canTrigger states", async ()=> {
   let triggerID = 0;
-  logReadyState(`T=${triggerID}`, triggerID);
+
+  function state() {
+    return [triggerID,invertorCtx.canTrigger(triggerID),loggerCtx.canTrigger(triggerID) ]
+  }
+
+  // start with all not-ready
+  assertEquals(state(),[0,false,false])
+
+  // nextTrig, still not-ready .. no inputs yets
   triggerID++;
-  logReadyState(`T=${triggerID}`, triggerID);
+  assertEquals(state(),[1,false,false])
   
+  // give invertor an input, now is ready
   invertorCtx.setInputs({ input: true });
-  logReadyState("inv.setInput()", triggerID);
+  assertEquals(state(),[1,true,false])
   
+  // so trigger it, is no longer ready
   const outInv = await invertorCtx.trigger(triggerID);
-  logReadyState(`T=${triggerID}`, triggerID);
-  console.log("inv.out =>", outInv);
+  assertEquals(state(),[1,false,false])
+
+  // did it output the inverted value?
+  assertEquals(outInv.out,false)
   
+  // forward to logger, is now ready
   loggerCtx.setInputs({ data: outInv!.out });
-  logReadyState("log.setInput()", triggerID);
+  assertEquals(state(),[1,false,true])
   
+  // so trigger it, is no longer ready
   const logInv = await loggerCtx.trigger(triggerID);
-  console.log("log.out =>", logInv);
+  assertEquals(state(),[1,false,false])
+  // input got cleared
+  assertEquals(logInv.data,undefined);
   
-  logReadyState("T=1", triggerID);
+  // next round, give invertor some more data
   triggerID++;
-  logReadyState(`T=${triggerID}`, triggerID);
-  loggerCtx.clearInputs();
-  logReadyState("log.clearInputs()", triggerID);
+  invertorCtx.setInputs({ input: false });
+  assertEquals(state(),[2,true,false])
+
+  // forget it .. no data any more
+  invertorCtx.clearInputs();
+  assertEquals(state(),[2,false,false])
+
+  // give everyone some inputs
+  invertorCtx.setInputs({ input: false });
+  loggerCtx.setInputs({ data: false as boolean});
+
+  // ensure it didnt output the inverted value, yet
+  assertEquals(outInv.out,false)
+  assertEquals(state(),[2,true,true]);
+
+  await invertorCtx.trigger(triggerID);
+  loggerCtx.setInputs({ data: invertorCtx.block.out! as boolean});
+  await loggerCtx.trigger(triggerID);
+
+  assertEquals(state(),[2,false,false]);
+
+  assertEquals(invertorCtx.block.out,true)
 })
 

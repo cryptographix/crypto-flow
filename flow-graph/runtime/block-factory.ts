@@ -7,6 +7,7 @@ export type BlockMethods<BLK> = {
   run(): void | Promise<void>; setup(config: PartialPropertiesOf<BLK>): void; teardown(): void;
 }
 export type BlockInstance<BLK extends AnyBlock> = BLK & BlockMethods<BLK> & ExtractBlockIF<BLK>;
+export type BlockInstanceForIF<IF extends AnyInterface> = Block<IF> & BlockMethods<Block<IF>> & IF;
 
 export class BlockFactory<BLK extends AnyBlock> {
 
@@ -37,7 +38,19 @@ export class BlockFactory<BLK extends AnyBlock> {
   async createInstance(): Promise<BlockInstance<BLK>> {
     const blockDefinition = await this.blockDefinition;
 
-    const block = new blockDefinition.ctor();
+
+    // deno-lint-ignore ban-types
+    function isConstructable(value: Function): value is BlockConstructor<BLK> {
+      return !!value.prototype && !!value.prototype.constructor;
+    }
+
+    const ctor = blockDefinition.ctor;
+
+    // ctor may return a promise, for lazy loading of block implementation
+    const block = isConstructable(ctor)
+      ? new ctor()
+      : await ctor();
+
     const blockHelper = new BlockHelperImpl(block, blockDefinition);
 
     Object.defineProperties(block, {

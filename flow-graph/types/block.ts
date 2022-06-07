@@ -5,7 +5,6 @@ import {
   InterfaceDefinition,
 } from "../deps.ts";
 
-
 export type BlockPropertiesOf<BLK> = {
   [K in keyof Omit<BLK, '$helper' | 'setup' | 'teardown' | 'run' | 'validate'>]-?: BLK[K];
 };
@@ -60,9 +59,10 @@ export type AnyBlock = Block<AnyInterface>;
 /**
  * Block Constructor shape
  */
-export interface BlockConstructor<BLK extends AnyBlock> {
+export type BlockConstructor<BLK extends AnyBlock> = {
   new(): BLK;
-}
+};
+
 
 export type BlockType =
   | "none"
@@ -80,7 +80,7 @@ export interface BlockDefinition<BLK extends AnyBlock = AnyBlock> extends Interf
   type: BlockType;
 
   // class
-  ctor: BlockConstructor<BLK>;
+  ctor: BlockConstructor<BLK> | (() => Promise<BLK>);
 
   category?: string;
 

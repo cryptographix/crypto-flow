@@ -36,7 +36,7 @@ export const registry = {
   },
 
   hasPackage(namespace: string) {
-    return rootPackage.getPackage(namespace) !== undefined;
+    return rootPackage.hasPackage(namespace);
   },
 
   getBlockInfo<BLK extends AnyBlock = AnyBlock>(blockName: string): BlockDefinition<BLK> {

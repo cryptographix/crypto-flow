@@ -1,5 +1,5 @@
 import {
-  BlockInstance,
+  BlockInstance, BlockInstanceForIF,
   Block,
   BlockDefinition,
   BlockHelper,
@@ -8,7 +8,7 @@ import {
 import { IFBlockCipher } from "../../interfaces/block-cipher.ts";
 
 interface IFBlockCipherMode extends IFBlockCipher {
-  blockCipher: BlockInstance<Block<IFBlockCipher>>;
+  blockCipher: BlockInstanceForIF<IFBlockCipher>;
 }
 
 class CBCCipherModeBlock implements Block<CBCCipherModeBlock>, IFBlockCipherMode {

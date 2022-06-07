@@ -98,8 +98,15 @@ export class Package {
     return this.lookupPackage(namespace, removeLastSegment, true)!;
   }
 
-  getPackage(namespace: string, removeLastSegment = false): Package | undefined {
-    return this.lookupPackage(namespace, removeLastSegment);
+  hasPackage(namespace: string) {
+    return this.lookupPackage(namespace) !== undefined;
+  }
+
+  getPackage(namespace: string, removeLastSegment = false): Package {
+    const pack = this.lookupPackage(namespace, removeLastSegment);
+    if (pack) return pack;
+    
+    throw new Error(`Package ${namespace} not found`);
   }
 
   addPackage(packageID: string, pack: Package) {

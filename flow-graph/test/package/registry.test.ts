@@ -1,9 +1,9 @@
 import { packageDefinition } from './../data/test-package-1.ts';
 import { registry, PackageDefinition, BlockDefinition } from "../deps.ts";
 
-import { Test, assert, assertExists, assertFalse, assertEquals } from "../deps.ts"
+import { test, assert, assertExists, assertFalse, assertEquals } from "../test-harness.ts";
 
-Test.test("register namespaced package", () => {
+test("Registry: register namespaced package", () => {
   const emptyPackage: PackageDefinition = {
     namespace: "org.cryptographix"
   }
@@ -16,7 +16,7 @@ Test.test("register namespaced package", () => {
   assert(registry.hasPackage("org.cryptographix"));
 });
 
-Test.test("register sub-package", () => {
+test("Registry: register sub-package", () => {
   const cgxTestPackage: PackageDefinition = {
     namespace: "org.cryptographix",
     packages: {
@@ -31,7 +31,7 @@ Test.test("register sub-package", () => {
   assert(registry.hasPackage("org.cryptographix.test"));
 });
 
-Test.test("register sub-package with block", () => {
+test("Registry: register sub-package with block", () => {
   const cgxTestPackage: PackageDefinition = {
     namespace: "org.cryptographix",
     packages: {
@@ -51,17 +51,16 @@ Test.test("register sub-package with block", () => {
   assertExists(registry.getBlockInfo("org.cryptographix.test.Blocky"));
 });
 
-Test.test("register packageDefinition with 2 code blocks", () => {
+test("Registry: register packageDefinition with 2 code blocks", () => {
   registry.reset();
 
   registry.registerPackage(packageDefinition);
-  assert(registry.hasPackage("test.blocks"));
   assert(registry.hasPackage("test.blocks"));
   assertExists(registry.getBlockInfo("test.blocks.printer"));
   assertExists(registry.getBlockInfo("test.blocks.printer2"));
 });
 
-Test.test("register.categories", () => {
+test("Registry: list categories", () => {
   registry.reset();
 
   registry.registerPackage(packageDefinition);

@@ -1,34 +1,54 @@
 import impProject from "../data/project-1.json" assert { type: "json"};
 
-import { FlowRunner, Project, registry } from "../deps.ts";
+import { FlowRunner, Project, registry, AnyInterface } from "../deps.ts";
 
-const project = Project.parseProject(Deno.cwd(), impProject);
+import { test, assertEquals } from "../test-harness.ts";
 
-const runner = new FlowRunner(project.getRootFlow(true)!);
+test("Runner: Trigger sequence", async () => {
+  const project = Project.parseProject(Deno.cwd(), impProject);
 
-registry.registerPackage((await import("../data/test-package-1.ts")).packageDefinition);
+  const runner = new FlowRunner(project.getRootFlow(true)!);
 
-await runner.setupNetwork();
+  registry.registerPackage((await import("../data/test-package-1.ts")).packageDefinition);
 
-for (const val of [true, false]) {
-  runner.nodes.get("inverter")?.context.setInputs({ input: val } as Record<string,unknown> );
+  await runner.setupNetwork();
 
-  let trig = runner.nextTriggerID();
-  console.log("trig=", trig);
-  while (trig < (val ? 2 : 4)) {
-    let block;
+  const trigs: AnyInterface[] = [];
 
-    do {
-      block = runner.nextReadyNode();
+  /**
+   * Test Project has an invertor node and a printer node.
+   */
 
-      if (block) {
-        console.log("triggering ...", block.node.id);
+  for (const val of [true, false]) {
+    runner.nodes.get("inverter")?.context.setInputs({ input: val } as Record<string, unknown>);
 
-        block = await runner.triggerNode(block);
-      }
-    } while (block);
+    const trace: (string|number)[] = [];
+    trigs.push( { [val ? "true" : "false"]: trace });
 
-    trig = runner.nextTriggerID();
-    console.log("trig=", trig);
+    let trig = runner.nextTriggerID();
+    trace.push(trig);
+
+    //console.log("trig=", trig);
+
+    while (trig < (val ? 2 : 4)) {
+      let block;
+
+      do {
+        block = runner.nextReadyNode();
+
+        if (block) {
+          //console.log("triggering ...", block.node.id);
+          trace.push(block.node.id)
+
+          block = await runner.triggerNode(block);
+        }
+      } while (block);
+
+      trig = runner.nextTriggerID();
+      trace.push(trig);
+      //console.log("trig=", trig);
+    }
   }
-}
+
+  assertEquals( JSON.stringify(trigs), '[{"true":[1,"inverter","node-2",2]},{"false":[3,"inverter","node-2",4]}]')
+})

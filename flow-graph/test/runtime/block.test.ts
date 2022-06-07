@@ -1,6 +1,6 @@
-import { AbstractBlock, BlockDefinition, BlockFactory, InterfaceDefinition } from "../deps.ts";
+import { Block, BlockDefinition, BlockFactory, BlockHelper, InterfaceDefinition, PartialPropertiesOf } from "../deps.ts";
 
-// 1. Declare an interface type
+// 1. Interface type
 interface IFBlockCipher {
   direction: "encrypt" | "decrypt";
 
@@ -13,7 +13,7 @@ interface IFBlockCipher {
   cipherText: Uint8Array;
 }
 
-// 2. Declare an InterfaceDefinition object that describes the interface
+// 2. InterfaceDefinition object that describes the interface
 const IFBlockCipher: InterfaceDefinition<IFBlockCipher> = {
   name: "IFBlockCipher",
 
@@ -38,21 +38,23 @@ const IFBlockCipher: InterfaceDefinition<IFBlockCipher> = {
   }
 };
 
-export class XORBlockCipherBlock extends AbstractBlock<IFBlockCipher> {
+// 3. Block that implements this interface
+export class XORBlockCipherBlock implements Block<IFBlockCipher> {
+  readonly $helper!: BlockHelper<Block<IFBlockCipher>>;
  
   key!: Uint8Array;
 
   direction!: "encrypt" | "decrypt";
 
-  blockSize = 64;
+  get blockSize() { return 64 }
 
   plainText!: Uint8Array;
 
   cipherText!: Uint8Array;
 
-  // setup(config: PartialPropertiesOf<XORBlockCipherBlock>) {
-  //   return this.$helper.setup(config);
-  // }
+  setup(config: PartialPropertiesOf<XORBlockCipherBlock>) {
+    return this.$helper.setup(config);
+  }
 
   run(): void {
     const { key, plainText, blockSize } = this;
@@ -64,6 +66,7 @@ export class XORBlockCipherBlock extends AbstractBlock<IFBlockCipher> {
   }
 }
 
+// 4. BlockDefinition object that describes the block, extending the interface definition
 const XORBlockCipher: BlockDefinition<XORBlockCipherBlock> = {
   type: "block",
 
@@ -74,7 +77,7 @@ const XORBlockCipher: BlockDefinition<XORBlockCipherBlock> = {
   namespace: "org.cryptographix.cryptography.block-ciphers",
 
   ctor: XORBlockCipherBlock,
-
+ 
   propertyDefinitions: {
     ...IFBlockCipher.propertyDefinitions,
     key: {
@@ -91,26 +94,26 @@ const XORBlockCipher: BlockDefinition<XORBlockCipherBlock> = {
   },
 };
 
-import { Test } from "../deps.ts";
+import { test, assertEquals, assertNotEquals } from "../test-harness.ts";
 
-Test.test({
-  name: "Block extends registered interface",
+test({
+  name: "Block: Definition correctly extends registered interface",
   fn: () => {
     const propInfo = XORBlockCipher.propertyDefinitions;
 
-    Test.assertEquals(Object.keys(propInfo).length, 5);
-    Test.assertEquals(propInfo.plainText, IFBlockCipher.propertyDefinitions.plainText);
-    Test.assertNotEquals(propInfo.blockSize, IFBlockCipher.propertyDefinitions.blockSize);
+    assertEquals(Object.keys(propInfo).length, 5);
+    assertEquals(propInfo.plainText, IFBlockCipher.propertyDefinitions.plainText);
+    assertNotEquals(propInfo.blockSize, IFBlockCipher.propertyDefinitions.blockSize);
   },
 });
 
-Test.test({
-  name: "Block setup and process",
+test({
+  name: "Block: setup and process execute normally",
   fn: async () => {
     const cipher = await BlockFactory.for(XORBlockCipher).createInstance();
     cipher.setup({ direction: "encrypt" });
 
-    Test.assertEquals(cipher.direction, "encrypt", "setup");
+    assertEquals(cipher.direction, "encrypt", "setup");
 
     cipher.key = new Uint8Array(16);
     cipher.plainText = new Uint8Array(16);
@@ -118,7 +121,28 @@ Test.test({
     await cipher.run();
 
     const { blockSize, cipherText } = cipher;
-    Test.assertEquals(blockSize, 128);
-    Test.assertEquals(cipherText instanceof Uint8Array, true);
+    assertEquals(blockSize, 64);
+    assertEquals(cipherText instanceof Uint8Array, true);
+  },
+});
+
+test({
+  name: "Block: Factory performs lazy instantiation",
+  fn: async () => {
+    XORBlockCipher.ctor = () => Promise.resolve(new XORBlockCipherBlock());
+
+    const cipher = await BlockFactory.for(XORBlockCipher).createInstance();
+    cipher.setup({ direction: "encrypt" });
+
+    assertEquals(cipher.direction, "encrypt", "setup");
+
+    cipher.key = new Uint8Array(16);
+    cipher.plainText = new Uint8Array(16);
+
+    await cipher.run();
+
+    const { blockSize, cipherText } = cipher;
+    assertEquals(blockSize, 64);
+    assertEquals(cipherText instanceof Uint8Array, true);
   },
 });

@@ -1,7 +1,8 @@
 //import { packageDefinition } from './../data/test-package-1.ts';
 import { registry, PackageLoader, ImportDefinition } from "../deps.ts";
 
-import { Test, assert, assertExists, assertEquals } from "../deps.ts"
+import { test, assert, assertExists, assertEquals } from "../test-harness.ts";
+
 
 function moduleImportToBasePath() {
   let path = import.meta.url;
@@ -12,7 +13,7 @@ function moduleImportToBasePath() {
   return path;
 }
 
-Test.test("load js package", async () => {
+test("load js package", async () => {
   const importDef = new ImportDefinition("test.blocks", {
     moduleURLs: ["./data/test-package-1.js"],
     importFilters: []
@@ -28,7 +29,7 @@ Test.test("load js package", async () => {
   assertEquals(registry.getBlockInfo("test.blocks.printer").name, "printer");
 });
 
-Test.test("load json package", async () => {
+test("load json package", async () => {
   const importDef = new ImportDefinition("test.blocks", {
     moduleURLs: ["./data/library1.json"],
     importFilters: []

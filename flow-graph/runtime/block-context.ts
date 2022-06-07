@@ -3,7 +3,8 @@ import {
   BlockDefinition,
   BlockHelper,
   BlockFactory, BlockPropertyDefinitions,
-  Node
+  Node,
+  BlockInstanceForIF
 } from "../mod.ts";
 
 import { AbstractBlock } from "./abstract-block.ts";
@@ -36,7 +37,7 @@ export type BlockStatus =
  * Contains a Block instance and a fresh copy of BlockInfo.
  */
 export class BlockContext<IF extends AnyInterface> {
-  #block: Block<IF>;
+  #block: BlockInstanceForIF<IF>;
 
   #blockHelper: BlockHelper<Block<IF>>;
 
@@ -63,7 +64,7 @@ export class BlockContext<IF extends AnyInterface> {
     );
   }
 
-  constructor(block: Block<IF>, blockHelper: BlockHelper<Block<IF>>) {
+  constructor(block: BlockInstanceForIF<IF>, blockHelper: BlockHelper<Block<IF>>) {
     this.#block = block;
     this.#blockHelper = blockHelper;
 
@@ -71,7 +72,7 @@ export class BlockContext<IF extends AnyInterface> {
     this.#setPropertyInfos();
   }
 
-  get block(): Block<IF> { return this.#block; }
+  get block(): BlockInstanceForIF<IF> { return this.#block; }
   get blockHelper(): BlockHelper<Block<IF>> { return this.#blockHelper; }
   get propertyDefinitions() { return this.#blockHelper.propertyDefinitions; }
 
@@ -211,7 +212,8 @@ export class BlockContext<IF extends AnyInterface> {
     }
 
     // noop
-    return Promise.resolve(new BlockContext(null as unknown as Block<IF>, null as unknown as BlockHelper<Block<IF>>));
+    const bc = new BlockContext(null as unknown as BlockInstanceForIF<IF>, null as unknown as BlockHelper<BlockInstanceForIF<IF>>);
+    return Promise.resolve(bc as BlockContext<IF>);
   }
 
   static forBlockName<IF>(blockName: string) {
@@ -219,7 +221,7 @@ export class BlockContext<IF extends AnyInterface> {
 
     return factory.createInstance().then(
       (block) => {
-        return new BlockContext(block, block.$helper);
+        return new BlockContext<IF>(block, block.$helper);
 
       }
     );
@@ -254,11 +256,11 @@ export class BlockContext<IF extends AnyInterface> {
       } as BlockPropertyDefinitions<IF>[keyof BlockPropertyDefinitions<IF>];
     });
 
-    const factory = new BlockFactory("inline", "", code, propertyDefinitions);
-  
+    const factory = new BlockFactory<Block<IF>>("inline", "", code, propertyDefinitions);
+
     const block = await factory.createInstance()
-  
-    return new BlockContext<IF>(block, block.$helper);
+
+    return new BlockContext<IF>(block, block.$helper) as BlockContext<IF>;
   }
 
   // static async fromLoader<IF extends AnyInterface>(
@@ -274,9 +276,9 @@ export class BlockContext<IF extends AnyInterface> {
   // }
 
   static async for<IF extends AnyInterface>(blockDefinition: BlockDefinition<Block<IF>>) {
-    const block = await BlockFactory.for(blockDefinition).createInstance()
+    const block = await BlockFactory.for<Block<IF>>(blockDefinition).createInstance()
 
-    return new BlockContext(block, block.$helper);
+    return new BlockContext<IF>(block, block.$helper);
   }
 }
 
