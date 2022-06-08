@@ -256,7 +256,7 @@ export class BlockContext<IF extends AnyInterface> {
       } as BlockPropertyDefinitions<IF>[keyof BlockPropertyDefinitions<IF>];
     });
 
-    const factory = new BlockFactory<Block<IF>>("inline", "", code, propertyDefinitions);
+    const factory = new BlockFactory<Block<IF>>("code", "", code, propertyDefinitions);
 
     const block = await factory.createInstance()
 

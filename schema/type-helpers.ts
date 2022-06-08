@@ -93,6 +93,22 @@ export const JSONValue = {
     throw new Error(); //TODO: Error
   },
 
+  isBoolean(value: JSONValue): value is boolean {
+    return typeof value === "boolean";
+  },
+
+  ///
+  asBoolean(value: JSONValue, defValue = false): boolean {
+    if (JSONValue.isBoolean(value)) {
+      return value;
+    }
+    else if (JSONValue.isUndefined(value))
+      return defValue;
+
+    throw Error("JSON value not a boolean");
+  },
+    
+
   isNumber(value: JSONValue): value is number {
     return typeof value === "number";
   },
@@ -110,7 +126,7 @@ export const JSONValue = {
     else if (JSONValue.isUndefined(value))
       return defValue;
 
-    throw Error(""); // TODO: error
+    throw Error("JSON value not a number");
   },
 
   ///

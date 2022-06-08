@@ -1,6 +1,7 @@
 {
   "project": {
     "title": "invert-bit project",
+
     "flows": {
       "invert-bit": {
         "type": "root",
@@ -11,6 +12,7 @@
             "dataType": "boolean"
           }
         },
+
         "nodes": {
           "inverter": {
             "type": "code",
@@ -35,6 +37,7 @@
               }
             }
           },
+
           "node-2": {
             "type": "block",
             "name": "out",
@@ -51,6 +54,7 @@
         }
       }
     },
+
     "imports": {
       "library.1": "./library1.json",
       "library.2-sel": {
@@ -67,6 +71,25 @@
           "./library2.js"
         ],
         "import": "AESBlockCipher, DESBlockCipher"
+      }
+    },
+    
+    "blocks": {
+      "invertor-block" : {
+        "type": "code",
+        "name": "Inverting Block",
+        "code": "export default function({input}) {\nreturn { out: !input };\n}",
+
+        "properties": {
+          "input": {
+            "type": "in",
+            "dataType": "boolean"
+          },
+          "out": {
+            "type": "out",
+            "dataType": "boolean"
+          }
+        }
       }
     }
   }

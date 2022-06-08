@@ -1,4 +1,3 @@
-//import { packageDefinition } from './../data/test-package-1.ts';
 import { registry, PackageLoader, ImportDefinition } from "../deps.ts";
 
 import { test, assert, assertExists, assertEquals } from "../test-harness.ts";
@@ -29,9 +28,9 @@ test("load js package", async () => {
   assertEquals(registry.getBlockInfo("test.blocks.printer").name, "printer");
 });
 
-test("load json package", async () => {
+test("Loader: load package from json library", async () => {
   const importDef = new ImportDefinition("test.blocks", {
-    moduleURLs: ["./data/library1.json"],
+    moduleURLs: ["./data/library-1.json"],
     importFilters: []
   });
 
@@ -45,6 +44,20 @@ test("load json package", async () => {
   assertEquals(registry.getBlockInfo("test.blocks.printer").name, "printer");
 });
 
-//registry.registerPackage((await import(")).packageDefinition);
+test("Loader: load package from json project", async () => {
+  const importDef = new ImportDefinition("test.blocks", {
+    moduleURLs: ["./data/project-1.json"],
+    importFilters: []
+  });
+
+  const loader = new PackageLoader(importDef, moduleImportToBasePath());
+
+  await loader.loadPackages();
+
+  assert(registry.hasPackage("test.blocks"));
+  assert(registry.rootPackage.getPackage("test.blocks")?.blocks.size == 2)
+  assertExists(registry.getBlockInfo("test.blocks.printer"));
+  assertEquals(registry.getBlockInfo("test.blocks.printer").name, "printer");
+});
 
 

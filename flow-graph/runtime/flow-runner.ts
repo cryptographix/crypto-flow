@@ -13,21 +13,23 @@ export class FlowRunner {
     return this.#nodes;
   }
 
+  get triggerID() { return this.#triggerID };
+  
   #buildNetwork(flow: Graph) {
-    // restart
+    // reset
     this.#nodes.clear();
 
     // create a BlockNode for each Node
-    flow.nodes.forEach((node, key) => {
+    for (const [key, node] of flow.nodes.entries()) {
       const blockNode = new BlockNode(node);
 
       this.#nodes.set(key, blockNode);
-    });
+    }
 
     // Wire up links
-    this.#nodes.forEach((blockNode, key) => {
-      blockNode.node.ports.forEach((port, portID) => {
-        port.links.forEach((link) => {
+    for (const [key, blockNode] of this.#nodes.entries()) {
+      for (const [portID, port] of blockNode.node.ports.entries()) {
+        for (const link of port.links) {
           const targetNode = this.#nodes.get(link.nodeID);
 
           if (targetNode) {
@@ -35,11 +37,11 @@ export class FlowRunner {
 
             blockNode.addOutputConnection(portID, con);
           }
-        });
-      });
+        }
+      }
 
       this.#nodes.set(key, blockNode);
-    });
+    }
   }
 
   #findReadyLinkedNode(sourceNode: BlockNode): BlockNode | null {
@@ -107,6 +109,7 @@ export class FlowRunner {
     return undefined;
   }
 
+  triggerNode(node: BlockNode): Promise<BlockNode>;
   triggerNode(node?: BlockNode): null | Promise<BlockNode> {
     const selectedNode = node ?? this.nextReadyNode();
 

@@ -1,3 +1,5 @@
+import proj1 from "../data/project-1.json" assert { type: "json" }
+
 import { Package } from "../deps.ts";
 import { test, assert, assertExists, assertInstanceOf, assertEquals } from "../test-harness.ts";
 
@@ -63,3 +65,15 @@ test("Package: getPackage() understands package hierarchies", () => {
   assertEquals(test4.namespace, "org.cryptographix.test");
 });
 
+test("Package: parsePackage from project", async () => {
+  const pack = await Package.parsePackage(proj1.project);
+
+  // assert(pack.hasPackage("test.blocks"));
+  assertEquals(pack.blocks.size, 1);
+
+  const b1 = pack.blocks.get('invertor-block')!;
+  assertExists(b1);
+
+  //console.log(b1);
+//  assertEquals(registry.getBlockInfo("test.blocks.printer").name, "printer");
+});

@@ -15,7 +15,7 @@ export class BlockFactory<BLK extends AnyBlock> {
 
   constructor(type: "none", blockName: string, blockDefinition: BlockDefinition<BLK>)
   constructor(type: "block", blockName: string)
-  constructor(type: "inline", blockName: string, code: string, propertyDefinitions: BlockPropertyDefinitions<BLK>)
+  constructor(type: "code", blockName: string, code: string, propertyDefinitions: BlockPropertyDefinitions<BLK>)
   constructor(public blockType: BlockType, public readonly blockName: string, codeOrDef?: string | BlockDefinition<BLK>, propertyDefinitions?: BlockPropertyDefinitions<BLK>) {
     switch (blockType) {
       case "none": {
@@ -23,11 +23,12 @@ export class BlockFactory<BLK extends AnyBlock> {
         break;
       }
 
-      case "inline": {
+      case "code": {
         this.blockDefinition = BlockFactory.#buildCodeBlock(codeOrDef as string, propertyDefinitions ?? {} as BlockPropertyDefinitions<BLK>);
         break;
       }
 
+      case "block":
       default: {
         this.blockDefinition = Promise.resolve(registry.getBlockInfo<BLK>(this.blockName));
         break;
@@ -96,7 +97,7 @@ export class BlockFactory<BLK extends AnyBlock> {
       }) as BlockConstructor<BLK>;
 
       const blockDefinition: BlockDefinition<BLK> = {
-        type: "inline",
+        type: "code",
         ctor: blockCtor,
         name: "code",
         category: "code",

@@ -1,5 +1,6 @@
 export * from './flow/load-flow.test.ts';
 
+export * from './package/loader.test.ts';
 export * from './package/package.test.ts';
 export * from './package/registry.test.ts';
 

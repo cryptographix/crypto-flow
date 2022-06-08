@@ -1,5 +1,5 @@
 import { Package, PackageDefinition } from './package.ts'
-import { JSONValue } from "../deps.ts";
+import { JSONObject, JSONValue } from "../deps.ts";
 import { registry } from "./package-registry.ts";
 
 /**
@@ -22,7 +22,7 @@ export class ImportDefinition {
   // list of Obejct names (interfaces, blocks, datatypes)
   importFilters: string[];
 
-  constructor(namespace: string, info: Pick<ImportDefinition, 'moduleURLs' | 'importFilters'>) {
+  constructor(namespace: string, info: Pick<ImportDefinition, 'moduleURLs' | 'importFilters'>, public baseURL?: string) {
     const { moduleURLs, importFilters } = info;
 
     this.namespace = namespace;
@@ -112,9 +112,18 @@ export class PackageLoader {
       } else if (lowerPath.endsWith('.json')) {
         pack = fetch(url.toString(), { headers: new Headers({ "accept": "application/json" }) })
           .then(resp => resp.json())
-          .then(json => {
-            const pack = Package.parsePackage(json);
+          .then( async (obj: JSONObject) => {
+            let pack;
 
+            // A package json must have an internal "library" or "project"
+            if (JSONValue.isObject(obj.library)) {
+              pack = await Package.parsePackage(obj.library);
+            } else if (JSONValue.isObject(obj.project)) {
+              pack = await Package.parsePackage(obj.project);
+            } else {
+              throw new Error( "Package is neither a library or project file" );
+            }
+       
             return registry.registerPackage(pack);
           });
       }

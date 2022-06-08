@@ -9,7 +9,7 @@ export const packageDefinition: PackageDefinition = {
 
   blocks: {
     printer: {
-      type: "inline",
+      type: "code",
       name: "printer",
       category: "outputs",
       propertyDefinitions: {

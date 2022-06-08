@@ -68,7 +68,7 @@ export type BlockType =
   | "none"
   | "flow"
   | "block"
-  | "inline"
+  | "code"
   | "input"
   | "output";
 

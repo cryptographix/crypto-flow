@@ -41,7 +41,7 @@ export class Project implements IProject<Graph> {
 
     this.imports = new Map(Object.entries(imports).map(([namespace, lib]) => [
       namespace,
-      new ImportDefinition(namespace, lib),
+      new ImportDefinition(namespace, lib, baseURL),
     ]))
   }
 
