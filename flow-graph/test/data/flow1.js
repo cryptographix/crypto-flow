@@ -22,11 +22,11 @@ export default {
             },
             ports: {
               "input": {
-                type: "in",
+                direction: "in",
                 dataType: "boolean",
               },
               "out": {
-                type: "out",
+                direction: "out",
                 dataType: "boolean",
                 links: [
                   {
@@ -45,7 +45,7 @@ export default {
             },
             ports: {
               "data": {
-                type: "in",
+                direction: "in",
                 dataType: "boolean",
               },
             },

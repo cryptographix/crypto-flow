@@ -1,20 +1,20 @@
 import { JSONObject } from "../deps.ts";
-import { Graph, GraphInfo, ImportDefinition } from "../mod.ts";
+import { Graph, GraphInit, ImportDefinition } from "../mod.ts";
 
 
-export interface IProject<Graph extends GraphInfo = GraphInfo> {
+export interface ProjectInit<Graph extends GraphInit = GraphInit> {
   type: string;
 
   projectID: string;
 
   title: string;
 
-  flows: Map<string, GraphInfo>;
+  flows: Map<string, GraphInit>;
 
   imports: Map<string, ImportDefinition>;
 }
 
-export class Project implements IProject<Graph> {
+export class Project implements ProjectInit<Graph> {
   type: string;
 
   projectID: string;
@@ -25,7 +25,7 @@ export class Project implements IProject<Graph> {
 
   imports: Map<string, ImportDefinition>;
 
-  constructor(public readonly baseURL: string, project: IProject) {
+  constructor(public readonly baseURL: string, project: ProjectInit) {
     const { type, projectID, title, flows = new Map(), imports = new Map() } = project;
 
     this.type = type;
@@ -33,7 +33,7 @@ export class Project implements IProject<Graph> {
     this.title = title;
 
     this.flows = new Map(
-      Object.entries(flows).map(([flowID, flow]) => [
+      Array.from(flows.entries()).map(([flowID, flow]) => [
         flowID,
         new Graph(this, flow),
       ])
@@ -57,20 +57,19 @@ export class Project implements IProject<Graph> {
     return flow;
   }
 
-  createFlow(type: "root" | "flow", name: string): Graph {
+  createFlow(type: "root" | "flow", id: string, name: string): Graph {
     if (type == "root" && this.getRootFlow(false)) {
       throw new Error("");
     }
 
     const flow = new Graph(this, {
-      id: "new flow",
       type,
       name,
       nodes: new Map(),
       ports: new Map(),
     });
 
-    this.flows.set(flow.id, flow);
+    this.flows.set(id, flow);
 
     return flow;
   }
@@ -93,7 +92,7 @@ export class Project implements IProject<Graph> {
     Object.entries(flows ?? {}).reduce((flows, item) => {
       const [id, flow] = item;
 
-      flows.set(id, Graph.parseGraph(project, id, flow));
+      flows.set(id, Graph.parseGraph(project, flow));
 
       return flows;
     }, project.flows);
@@ -129,11 +128,19 @@ export class Project implements IProject<Graph> {
     });
   }
 
-  static emptyProject: IProject = Object.freeze({
+  static emptyFlow: GraphInit = Object.freeze({
+    type:"root",
+
+    id: "",
+
+    nodes: new Map(),
+    ports: new Map(),
+  });
+  static emptyProject: ProjectInit = Object.freeze({
     type: "",
     projectID: "",
     title: "",
-    flows: new Map(),
+    flows: new Map([["root", Project.emptyFlow]]),
     imports: new Map(),
   });
 }

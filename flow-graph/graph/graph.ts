@@ -1,20 +1,22 @@
-import { Node, NodeInfo } from "./node.ts";
-import { Port, PortInfo } from "./port.ts";
+import { Node, NodeInit } from "./node.ts";
+import { PortInit } from "./port.ts";
 import { JSONObject } from "../deps.ts";
-import { IProject } from "../project/project.ts";
+import { ProjectInit } from "../project/project.ts";
 
-export interface GraphInfo<Node extends NodeInfo = NodeInfo, Port extends PortInfo = PortInfo>
-  extends NodeInfo<Port> {
+export interface GraphInit<Node extends NodeInit = NodeInit, Port extends PortInit = PortInit>
+  extends NodeInit<Port> {
+
+  // nodes within graph
   nodes: Map<string, Node>;
 }
 
 /**
  * Flow represents, at run-time, a flow-graph consisting of connected nodes.
  */
-export class Graph extends Node implements GraphInfo<Node, Port> {
+export class Graph extends Node {
   nodes: Map<string, Node>;
 
-  constructor(private project: IProject|undefined=undefined, graph: GraphInfo = Graph.emptyGraph) {
+  constructor(private project: ProjectInit|undefined=undefined, graph: GraphInit = Graph.emptyGraph) {
     super(null, graph);
 
     const { nodes } = graph;
@@ -24,16 +26,16 @@ export class Graph extends Node implements GraphInfo<Node, Port> {
     );
   }
 
-  static parseGraph(project: IProject|undefined, id: string, obj: JSONObject): Graph {
+  static parseGraph(project: ProjectInit|undefined, obj: JSONObject): Graph {
     const graph = new Graph(project, {
-      ...Node.parseNode(null, id, obj),
+      ...Node.parseNode(null, obj),
       nodes: new Map<string, Node>(),
     });
 
     Object.entries((obj.nodes as JSONObject[]) ?? {}).reduce((nodes, item) => {
       const [nodeID, node] = item;
 
-      nodes.set(nodeID, Node.parseNode(graph, nodeID, node));
+      nodes.set(nodeID, Node.parseNode(graph, node));
 
       return nodes;
     }, graph.nodes);
@@ -64,7 +66,7 @@ export class Graph extends Node implements GraphInfo<Node, Port> {
     });
   }
 
-  static readonly emptyGraph: GraphInfo = {
+  static readonly emptyGraph: GraphInit = {
     ...Node.emptyNode,
     nodes: new Map(),
   };

@@ -38,7 +38,7 @@ test("Runner: Trigger sequence", async () => {
 
         if (block) {
           //console.log("triggering ...", block.node.id);
-          trace.push(block.node.id)
+          trace.push(block.id)
 
           block = await runner.triggerNode(block);
         }

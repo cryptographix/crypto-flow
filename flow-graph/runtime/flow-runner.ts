@@ -13,17 +13,17 @@ export class FlowRunner {
     return this.#nodes;
   }
 
-  get triggerID() { return this.#triggerID };
-  
+  get triggerID() { return this.#triggerID }
+
   #buildNetwork(flow: Graph) {
     // reset
-    this.#nodes.clear();
+    this.#resetNetwork();
 
     // create a BlockNode for each Node
-    for (const [key, node] of flow.nodes.entries()) {
-      const blockNode = new BlockNode(node);
+    for (const [nodeID, node] of flow.nodes.entries()) {
+      const blockNode = new BlockNode(nodeID, node);
 
-      this.#nodes.set(key, blockNode);
+      this.#nodes.set(nodeID, blockNode);
     }
 
     // Wire up links
@@ -42,6 +42,14 @@ export class FlowRunner {
 
       this.#nodes.set(key, blockNode);
     }
+  }
+
+  #resetNetwork() {
+    for (const [_id, blockNode] of this.#nodes) {
+      blockNode.finalize();
+    }
+
+    this.#nodes.clear();
   }
 
   #findReadyLinkedNode(sourceNode: BlockNode): BlockNode | null {
@@ -79,6 +87,10 @@ export class FlowRunner {
     return Promise.all(nodes.map((bn) => bn.loadBlock()));
   }
 
+  teardownNetwork() {
+    this.#resetNetwork();
+  }
+
   nextTriggerID(): number {
     this.#triggerID++;
     this.#triggeredNodes = [];
@@ -91,7 +103,7 @@ export class FlowRunner {
     return this.#triggeredNodes.includes(node);
   }
 
-  nextReadyNode(): BlockNode | undefined {
+  nextReadyNode(allowRetriggers = false): BlockNode | undefined {
     // tail-end already triggered nodes
     for (let index = this.#triggeredNodes.length; index > 0; --index) {
       const node = this.#findReadyLinkedNode(this.#triggeredNodes[index - 1]);
@@ -102,7 +114,15 @@ export class FlowRunner {
     }
 
     for (const [_nodeID, node] of this.#nodes) {
-      if (node.context.canTrigger(this.#triggerID)) return node;
+      if (node.context.canTrigger(this.#triggerID))
+        return node;
+    }
+
+    if (allowRetriggers) {
+      for (const [_nodeID, node] of this.#nodes) {
+        if (node.context.inputsChanged && node.context.canTrigger())
+          return node;
+      }
     }
 
     // nobody is ready
@@ -125,7 +145,7 @@ export class FlowRunner {
             for (const con of cons) {
               const targetNode = con.targetNode;
 
-              const values = { [con.link.portID]: output[con.port.id as keyof PropertyValues<AnyInterface>] };
+              const values = { [con.link.portID]: output[portID as keyof PropertyValues<AnyInterface>] };
 
               targetNode.context.setInputs(values);
             }

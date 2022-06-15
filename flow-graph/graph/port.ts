@@ -1,31 +1,34 @@
 import { JSONObject, JSONValue } from "../deps.ts";
-import { Node } from "../mod.ts";
-import { Link, LinkInfo } from "./link.ts";
+import { BlockPropertyDefinition, PropertyFlowDirection, PropertyKind, Node } from "../mod.ts";
+import { Link, LinkInit } from "./link.ts";
 
-export type PortType = "none" | "in" | "out";
+export interface PortInit<T = unknown> {
+  // "Kind" of Port - event/data/api/protocol
+  kind: PropertyKind;
 
-export interface PortInfo<T = unknown> {
-  type: PortType;
+  // direction of data-flow to/from port: in/out/in-out
+  direction: PropertyFlowDirection;
 
-  id: string;
-
+  // Friendly-name
   name?: string;
 
+  // Type of data that flows through port
   dataType: string;
 
-  // for type "in"
+  // property required for run() - only type="in"/"in-out"
   optional?: boolean;
 
+  // fixed input, for
   data?: T;
 
-  // only for type="out"
-  links: Array<LinkInfo>;
+  // only direction="out"/"in-out"
+  links: Array<LinkInit>;
 }
 
-export class Port<T = unknown> implements PortInfo<T> {
-  type: PortType;
+export class Port<T = unknown> {
+  kind: PropertyKind;
 
-  id: string;
+  direction: PropertyFlowDirection;
 
   name?: string;
 
@@ -37,36 +40,40 @@ export class Port<T = unknown> implements PortInfo<T> {
 
   links: Array<Link>;
 
-  constructor(public node: Node, port: PortInfo) {
-    const { type, id, name, dataType, data, links = [] } = port;
+  constructor(public node: Node, port: PortInit<T>) {
+    const { kind, direction, name, dataType, data, links = [] } = port;
 
-    this.type = type;
-    this.id = id;
+    this.kind = kind;
+    this.direction = direction;
     this.name = name;
     this.dataType = dataType;
-    this.data = data as unknown as T;
+    this.data = data;
 
     this.links = links.map((link) => {
       return new Link(this, link);
     });
   }
 
-  static parsePort(node: Node, id: string, obj: JSONObject): Port {
-    const { type, name, dataType, optional, data } = obj;
+  get isOutput() {
+    return this.direction == "out" || this.direction == "in-out";
+  }
+
+  static parsePort(node: Node, obj: JSONObject): Port {
+    const { kind, direction, name, dataType, optional, data } = obj;
 
     const port = new Port(node, {
-      type: type as PortType,
-      id,
-      name: name as string,
-      dataType: dataType as string,
-      optional: !!optional,
+      kind: JSONValue.asString(kind) as PropertyKind,
+      direction: JSONValue.asString(direction) as PropertyFlowDirection,
+      name: JSONValue.asString(name),
+      dataType: JSONValue.asString(dataType, "")!,
+      optional: JSONValue.asBoolean(optional),
       data,
       links: [],
     });
 
     // only "out" ports have links
-    if (type == "out") {
-      Array.from((obj.links as JSONObject[]) ?? []).reduce<Array<LinkInfo>>(
+    if (port.isOutput) {
+      Array.from((obj.links as JSONObject[]) ?? []).reduce<Array<LinkInit>>(
         (links, item: JSONObject) => {
           links.push(Link.parseLink(port, item));
 
@@ -79,8 +86,28 @@ export class Port<T = unknown> implements PortInfo<T> {
     return port;
   }
 
+  static accessorToDirection(accessors: BlockPropertyDefinition["accessors"]): PropertyFlowDirection {
+    switch (accessors) {
+      case "get": return "out";
+      case "set": return "in";
+      case "both": return "in-out";
+      default: return "none";
+    }
+  }
+
+  static fromPropertyDefinition(node: Node, propertyDefinition: BlockPropertyDefinition): Port {
+    return new Port(node, {
+      kind: propertyDefinition.kind ?? "data",
+      direction: Port.accessorToDirection(propertyDefinition.accessors),
+      name: propertyDefinition.title,
+      dataType: propertyDefinition.dataType,
+      data: propertyDefinition.default,
+      links: [],
+    });
+  }
+
   toObject(): JSONObject {
-    const { type, name, dataType, optional, data } = this;
+    const { kind, direction, name, dataType, optional, data } = this;
 
     const links = Array.from(this.links).reduce((links, link) => {
       links.push(link.toObject());
@@ -89,12 +116,13 @@ export class Port<T = unknown> implements PortInfo<T> {
     }, [] as JSONObject[]);
 
     return JSONObject.removeNullOrUndefined({
-      type,
+      kind,
+      direction,
       name,
       dataType,
       optional,
       data: data as unknown as JSONValue, // TODO: structured types
-      links: type == "out" && links.length > 0 ? links : undefined,
+      links: (direction == "out" || direction == "in-out") && links.length > 0 ? links : undefined,
     });
   }
 }

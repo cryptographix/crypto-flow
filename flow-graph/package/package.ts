@@ -1,6 +1,6 @@
-import { JSONObject, JSONValue, AnyInterface, InterfaceDefinition, PropertyDefinition, Schema } from "../deps.ts";
+import { JSONObject, JSONValue, AnyInterface, InterfaceDefinition, Schema } from "../deps.ts";
 import { BlockFactory } from "../mod.ts";
-import { AnyBlock, Block, BlockConstructor, BlockDefinition, BlockPropertyDefinitions, BlockType } from "../types/block.ts";
+import { AnyBlock, Block, BlockConstructor, BlockDefinition, BlockPropertyDefinition, BlockPropertyDefinitions, BlockType, PropertyKind, PropertyFlowDirection } from "./block.ts";
 
 /**
  * A Package is a collection of data-types, interfaces and block-factories.
@@ -60,15 +60,17 @@ export class Package {
     );
 
     this.blocks = new Map(
-      Object.entries(blocks).map(([blockID, blockInfo]) => [blockID, blockInfo])
+      Object.entries(blocks).map(([id, blockInfo]) => [id, blockInfo])
     );
 
     this.packages = new Map();
 
     Object.entries(packages).forEach(([packageID, packageInfo]) => {
-      this.addPackage(packageID, new Package(
-        /*this,*/
-        Package.extendNamespace(namespace, packageID),
+      const [ns, finalPackageID] = Package.extractFinalFromNamespace(packageID);
+      const parentPackage = (ns == "") ? this : this.ensurePackage(ns);
+
+      parentPackage.addPackage(finalPackageID, new Package(
+        Package.extendNamespace(parentPackage.namespace, finalPackageID),
         packageInfo)
       )
     });
@@ -128,7 +130,7 @@ export class Package {
     if (packageID != "")
       this.packages.set(packageID, pack);
     else {
-      pack.blocks.forEach((block, blockID) => this.blocks.set(blockID, block));
+      pack.blocks.forEach((block, id) => this.blocks.set(id, block));
     }
   }
 
@@ -161,8 +163,8 @@ export class Package {
       description: JSONValue.asString(description, ''),
     });
 
-    for (const [blockID, blockInfo] of Object.entries((obj.blocks as JSONObject[]) ?? {})) {
-      pack.blocks.set(blockID, await Package.parseBlockDefinition(blockID, blockInfo));
+    for (const [id, blockInfo] of Object.entries((obj.blocks as JSONObject[]) ?? {})) {
+      pack.blocks.set(id, await Package.parseBlockDefinition(blockInfo));
     }
 
     pack.packages = Package.parsePackageMap(pack, obj.packages as JSONObject);
@@ -173,15 +175,14 @@ export class Package {
   /**
    * Parse a POJO into a BlockDefinition
    */
-  static async parseBlockDefinition<IF extends AnyInterface, BLK extends Block<IF> = Block<IF>>(/*pack: Package, */name: string, obj: JSONObject): Promise<BlockDefinition<BLK>> {
-    const { type, namespace, description, category } = obj;
+  static async parseBlockDefinition<IF extends AnyInterface, BLK extends Block<IF> = Block<IF>>(obj: JSONObject): Promise<BlockDefinition<BLK>> {
+    const { type, name, description, category } = obj;
 
     let ctor = null as unknown as BlockConstructor<BLK>;
 
     switch (type) {
       case "code": {
-        const factory = await new BlockFactory<BLK>("code", name, JSONValue.asString(obj.code), {} as any);
-        ctor = (await factory.blockDefinition).ctor as BlockConstructor<BLK>;
+        ctor = (await BlockFactory.buildCodeBlock<BLK>(JSONValue.asString(obj.code)!, {} as BlockPropertyDefinitions<BLK>)).ctor as BlockConstructor<BLK>;
         break;
       }
 
@@ -195,12 +196,11 @@ export class Package {
     }
 
     const blockDefinition: BlockDefinition<BLK> = {
-      type: type as BlockType,
+      type: JSONValue.asString(type) as BlockType,
       ctor,
-      name: name as string,
-      namespace: namespace as string,
-      description: description as string,
-      category: category as string,
+      name: JSONValue.asString(name)!,
+      description: JSONValue.asString(description),
+      category: JSONValue.asString(category),
       propertyDefinitions: Object.entries((obj.properties as JSONObject[]) ?? {}).reduce((properties: BlockPropertyDefinitions<BLK>, item) => {
         const [id, prop] = item;
         const idd = id as keyof typeof properties;
@@ -218,17 +218,19 @@ export class Package {
   /**
    * Parse a POJO into a PropertyDefinition
    */
-  static parsePropertyDefinition<T>(obj: JSONObject): PropertyDefinition<T> {
-    const { dataType, title, description, constant, optional, default: defValue, accessors } = obj;
+  static parsePropertyDefinition<T>(obj: JSONObject): BlockPropertyDefinition<T> {
+    const { kind, direction, dataType, title, description, constant, optional, default: defValue, accessors } = obj;
 
     return {
+      kind: JSONValue.asString(kind) as PropertyKind,
+      direction: JSONValue.asString(direction) as PropertyFlowDirection,
       dataType: JSONValue.asString(dataType) as unknown as "string", //PropertyDataTypes
       title: JSONValue.asString(title),
       description: JSONValue.asString(description, undefined),
       constant: JSONValue.asBoolean(constant, undefined),
       optional: JSONValue.asBoolean(optional, undefined),
-      ["default"]: defValue as unknown as T,
-      accessors: JSONValue.asString(accessors) as PropertyDefinition["accessors"],
+      default: defValue as unknown as T,
+      accessors: JSONValue.asString(accessors) as BlockPropertyDefinition["accessors"],
     };
   }
 
@@ -242,8 +244,8 @@ export class Package {
   static #packageToObject(pack: Package) {
     const { name, description, blocks: blocksIn = new Map(), packages: packagesIn = new Map() } = pack;
 
-    const blocks = Array.from(blocksIn).reduce((blocks, [blockID, blockInfo]) => {
-      blocks[blockID] = Package.#blockDefinitionToObject(blockInfo);
+    const blocks = Array.from(blocksIn).reduce((blocks, [id, blockInfo]) => {
+      blocks[id] = Package.#blockDefinitionToObject(blockInfo);
 
       return blocks;
     }, {} as JSONObject);
@@ -264,24 +266,23 @@ export class Package {
   }
 
   static #blockDefinitionToObject<BLK>(blockDefinition: BlockDefinition): JSONObject {
-    const { type, namespace, description, category } = blockDefinition;
+    const { type, description, category } = blockDefinition;
 
     const properties = Object.entries(blockDefinition.propertyDefinitions).reduce((properties, [propertyID, _propertyDefinition]) => {
-      properties[propertyID] = Package.#propertyDefinitionToObject(blockDefinition, propertyID);
+      properties[propertyID] = Package.#propertyDefinitionToObject(propertyID, blockDefinition);
 
       return properties;
     }, {} as JSONObject);
 
     return JSONObject.clean({
       type,
-      namespace,
       category,
       description,
       properties,
     });
   }
 
-  static #propertyDefinitionToObject<BLK>(blockDefinition: BlockDefinition, id: string): JSONObject {
+  static #propertyDefinitionToObject<BLK>(id: string, blockDefinition: BlockDefinition): JSONObject {
     return blockDefinition.propertyDefinitions[id as keyof BlockPropertyDefinitions<BLK>] as unknown as JSONObject;
   }
 

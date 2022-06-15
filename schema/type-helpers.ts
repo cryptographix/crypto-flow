@@ -70,11 +70,11 @@ export const JSONValue = {
   },
 
   ///
-  asString(value: JSONValue, defValue = ""): string {
+  asString(value: JSONValue, defValue?: string): string | undefined {
     if (JSONValue.isString(value))
       return value;
     else if (JSONValue.isUndefined(value))
-      return defValue;
+      return defValue
 
     throw Error(""); // TODO: error
   },
@@ -107,7 +107,7 @@ export const JSONValue = {
 
     throw Error("JSON value not a boolean");
   },
-    
+
 
   isNumber(value: JSONValue): value is number {
     return typeof value === "number";
@@ -170,8 +170,8 @@ export const JSONObject = {
         || (typeof prop == "object" && Object.keys(prop as JSONObject).length == 0)
         || (Array.isArray(prop) && prop.length == 0)
         || (typeof prop == "string" && prop.length == 0)) {
-          delete obj[propName];
-        }
+        delete obj[propName];
+      }
     }
 
     return obj as JSONObject;

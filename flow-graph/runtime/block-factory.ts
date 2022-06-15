@@ -1,5 +1,5 @@
-import { AnyInterface, PartialPropertiesOf, PropertiesOf, PropertyDefinition, PropertyValue, Schema } from "../deps.ts";
-import { AnyBlock, Block, BlockConstructor, BlockDefinition, BlockHelper, BlockPropertiesOf, BlockPropertyDefinitions, BlockType, registry } from "../mod.ts";
+import { AnyInterface, PartialPropertiesOf, PropertiesOf, PropertyValue, Schema } from "../deps.ts";
+import { AnyBlock, Block, BlockConstructor, BlockDefinition, BlockHelper, BlockPropertiesOf, BlockPropertyDefinition, BlockPropertyDefinitions, BlockType, registry } from "../mod.ts";
 
 type ExtractBlockIF<BLK extends AnyBlock> = BLK extends Block<infer IF> ? IF : never;
 
@@ -13,10 +13,10 @@ export class BlockFactory<BLK extends AnyBlock> {
 
   blockDefinition: Promise<BlockDefinition<BLK>>;
 
-  constructor(type: "none", blockName: string, blockDefinition: BlockDefinition<BLK>)
-  constructor(type: "block", blockName: string)
-  constructor(type: "code", blockName: string, code: string, propertyDefinitions: BlockPropertyDefinitions<BLK>)
-  constructor(public blockType: BlockType, public readonly blockName: string, codeOrDef?: string | BlockDefinition<BLK>, propertyDefinitions?: BlockPropertyDefinitions<BLK>) {
+  constructor(type: "none", blockID: string, blockDefinition: BlockDefinition<BLK>)
+  constructor(type: "block", blockID: string)
+  constructor(type: "code", blockID: string, code: string, propertyDefinitions: BlockPropertyDefinitions<BLK>)
+  constructor(public blockType: BlockType, public readonly blockID: string, codeOrDef?: string | BlockDefinition<BLK>, propertyDefinitions?: BlockPropertyDefinitions<BLK>) {
     switch (blockType) {
       case "none": {
         this.blockDefinition = Promise.resolve(codeOrDef as BlockDefinition<BLK>);
@@ -24,13 +24,13 @@ export class BlockFactory<BLK extends AnyBlock> {
       }
 
       case "code": {
-        this.blockDefinition = BlockFactory.#buildCodeBlock(codeOrDef as string, propertyDefinitions ?? {} as BlockPropertyDefinitions<BLK>);
+        this.blockDefinition = BlockFactory.buildCodeBlock(codeOrDef as string, propertyDefinitions ?? {} as BlockPropertyDefinitions<BLK>);
         break;
       }
 
       case "block":
       default: {
-        this.blockDefinition = Promise.resolve(registry.getBlockInfo<BLK>(this.blockName));
+        this.blockDefinition = Promise.resolve(registry.getBlockInfo<BLK>(this.blockID));
         break;
       }
     }
@@ -78,7 +78,7 @@ export class BlockFactory<BLK extends AnyBlock> {
     return block as unknown as BlockInstance<BLK>;
   }
 
-  static async #buildCodeBlock<BLK extends AnyBlock>(code: string, propertyDefinitions: BlockPropertyDefinitions<BLK>) {
+  static async buildCodeBlock<BLK extends AnyBlock>(code: string, propertyDefinitions: BlockPropertyDefinitions<BLK>): Promise<BlockDefinition<BLK>> {
     const url = "data:text/javascript," + code;
 
     const module = await import(url);
@@ -151,7 +151,7 @@ export class BlockHelperImpl<BLK extends AnyBlock> implements BlockHelper<BLK>
     //   4. the default for property type
     for (const [key, propInfo] of Object.entries(this.propertyDefinitions)) {
       Schema.initPropertyFromPropertyType<PropertiesOf<BLK>>(
-        propInfo as PropertyDefinition<keyof PropertiesOf<BLK>>,
+        propInfo as BlockPropertyDefinition<keyof PropertiesOf<BLK>>,
         block,
         key as keyof PropertiesOf<BLK>,
         initProperties[key as keyof BlockPropertiesOf<BLK>] as unknown as PropertyValue,

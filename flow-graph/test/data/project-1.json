@@ -8,7 +8,7 @@
         "name": "invert bit",
         "ports": {
           "in": {
-            "type": "in",
+            "direction": "in",
             "dataType": "boolean"
           }
         },
@@ -22,11 +22,11 @@
             },
             "ports": {
               "input": {
-                "type": "in",
+                "direction": "in",
                 "dataType": "boolean"
               },
               "out": {
-                "type": "out",
+                "direction": "out",
                 "dataType": "boolean",
                 "links": [
                   {
@@ -46,7 +46,7 @@
             },
             "ports": {
               "data": {
-                "type": "in",
+                "direction": "in",
                 "dataType": "boolean"
               }
             }
@@ -82,11 +82,11 @@
 
         "properties": {
           "input": {
-            "type": "in",
+            "direction": "in",
             "dataType": "boolean"
           },
           "out": {
-            "type": "out",
+            "direction": "out",
             "dataType": "boolean"
           }
         }

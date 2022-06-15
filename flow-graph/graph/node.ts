@@ -1,6 +1,6 @@
 import { JSONObject, JSONValue } from "../deps.ts";
 import { Graph } from "./graph.ts";
-import { Port, PortInfo } from "./port.ts";
+import { Port, PortInit } from "./port.ts";
 
 export type NodeType =
   | "none"
@@ -26,17 +26,15 @@ export interface NodeViewInfo {
 }
 
 export interface NodeBlockInfo {
-  // namespaced block-name
+  // namespaced block-name, aka blockID
   name?: string,
 
   // for "code" types, 
   code?: string;
 }
 
-export interface NodeInfo<Port extends PortInfo = PortInfo> {
+export interface NodeInit<Port extends PortInit = PortInit> {
   type: NodeType;
-
-  id: string;
 
   name?: string;
 
@@ -50,23 +48,21 @@ export interface NodeInfo<Port extends PortInfo = PortInfo> {
 export class Node {
   type: NodeType;
 
-  id: string;
-
   name?: string;
 
   block: NodeBlockInfo;
 
-  ports: Map<string, Port>;
-
   view: NodeViewInfo;
 
-  constructor(public graph: Graph | null, node: NodeInfo = Node.emptyNode) {
-    const { type, id, name, block = {}, ports, view } = node;
+  ports: Map<string, Port>;
+
+  constructor(public graph: Graph | null, node: NodeInit = Node.emptyNode) {
+    const { type, name, block = {}, ports, view = {} } = node;
 
     this.type = type;
-    this.id = id;
     this.name = name;
     this.block = block;
+    this.view = view;
 
     this.ports = new Map(
       Object.entries(ports).map(([_portID, port]) => [
@@ -74,37 +70,30 @@ export class Node {
         new Port(this, port),
       ])
     );
-
-    this.view = view ?? { x: 0, y: 0, w: 0, h: 0, color: "white" };
   }
 
-  static parseViewInfo(viewVal: JSONValue): NodeViewInfo {
-    return JSONValue.asObject<NodeViewInfo>(viewVal, {});
+  static parseViewInfo(value: JSONValue): NodeViewInfo {
+    return JSONValue.asObject<NodeViewInfo>(value, {});
   }
 
-  static parseBlockInfo(blockVal: JSONValue): NodeBlockInfo {
-    return JSONValue.asObject<NodeBlockInfo>(blockVal, {});
+  static parseBlockInfo(value: JSONValue): NodeBlockInfo {
+    return JSONValue.asObject<NodeBlockInfo>(value, {});
   }
 
-  static parseNode(graph: Graph | null, id: string, obj: JSONObject): Node {
+  static parseNode(graph: Graph | null, obj: JSONObject): Node {
     const { type, name, view, block } = obj;
 
     const node = new Node(graph, {
       type: JSONValue.asString(type) as NodeType,
-      id,
-      block: Node.parseBlockInfo(block),
       name: JSONValue.asString(name),
-      ports: new Map<string, Port>(),
+      block: Node.parseBlockInfo(block),
       view: Node.parseViewInfo(view),
+      ports: new Map<string, Port>(),
     });
 
-    Object.entries((obj.ports as JSONObject[]) ?? {}).reduce((ports, item) => {
-      const [id, port] = item;
-
-      ports.set(id, Port.parsePort(node, id, port));
-
-      return ports;
-    }, node.ports);
+    for (const [portID, port] of Object.entries((obj.ports as JSONObject[]) ?? {})) {
+      node.ports.set(portID, Port.parsePort(node, port));
+    }
 
     return node;
   }
@@ -122,12 +111,12 @@ export class Node {
       type,
       name,
       block: JSONObject.clean({ ...block }),
-      ports,
       view: JSONObject.clean({ ...view }),
+      ports
     });
   }
 
-  static readonly emptyNode: NodeInfo = Object.freeze({
+  static readonly emptyNode: NodeInit = Object.freeze({
     type: "none",
     id: "",
     ports: new Map(),

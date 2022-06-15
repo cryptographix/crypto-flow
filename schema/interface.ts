@@ -9,12 +9,8 @@ export interface InterfaceDefinition<
   IF extends AnyInterface = AnyInterface, 
   PropertyTypes extends InterfacePropertyInfos<PropertiesOf<IF>> = InterfacePropertyInfos<PropertiesOf<IF>>
 > {
-  //
+  // Friendly name
   name: string;
-
-  category?: string;
-
-  namespace?: string;
 
   description?: string;
 

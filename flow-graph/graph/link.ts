@@ -1,7 +1,7 @@
-import { JSONObject } from "../deps.ts";
-import { Port, Node } from "../mod.ts";
+import { JSONObject, JSONValue } from "../deps.ts";
+import { Port } from "../mod.ts";
 
-export interface LinkInfo {
+export interface LinkInit {
   type?: string;
 
   nodeID: string;
@@ -9,16 +9,14 @@ export interface LinkInfo {
   portID: string;
 }
 
-export class Link implements LinkInfo {
+export class Link {
   type?: string;
 
   portID: string;
 
   nodeID: string;
 
-  node!: Node;
-
-  constructor(public port: Port, link: LinkInfo) {
+  constructor(public port: Port, link: LinkInit) {
     const { type, portID, nodeID } = link;
 
     this.type = type;
@@ -26,16 +24,15 @@ export class Link implements LinkInfo {
     this.nodeID = nodeID;
   }
 
-  setup() {}
-
   static parseLink(port: Port, obj: JSONObject): Link {
     const { portID, nodeID } = obj;
 
     return new Link(port, {
-      nodeID: nodeID as string,
-      portID: portID as string,
+      nodeID: JSONValue.asString(nodeID)!,
+      portID: JSONValue.asString(portID)!,
     });
   }
+
   toObject(): JSONObject {
     const { portID, nodeID, type } = this;
 

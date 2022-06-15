@@ -31,10 +31,10 @@
             "nodes": "...",
             "ports": {
               "port-1": {
-                "type": "in"
+                "direction": "in"
               },
               "port-2": {
-                "type": "out"
+                "direction": "out"
               }
             }
           }

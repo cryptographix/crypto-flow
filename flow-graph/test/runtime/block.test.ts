@@ -17,8 +17,6 @@ interface IFBlockCipher {
 const IFBlockCipher: InterfaceDefinition<IFBlockCipher> = {
   name: "IFBlockCipher",
 
-  namespace: "org.cryptographix.cryptography.interfaces",
-
   propertyDefinitions: {
     // config
     direction: {
@@ -73,8 +71,6 @@ const XORBlockCipher: BlockDefinition<XORBlockCipherBlock> = {
   name: "XOR Block Cipher",
 
   category: "crypto",
-
-  namespace: "org.cryptographix.cryptography.block-ciphers",
 
   ctor: XORBlockCipherBlock,
  

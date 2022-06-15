@@ -6,7 +6,7 @@ import { test,assertEquals } from "../test-harness.ts";
 const _pack = registry.registerPackage(packageDefinition);
 
 const flow = impProject.project.flows["invert-bit"];
-const invertorCtx = await BlockContext.fromNode<{input:boolean, out?: boolean}>(Node.parseNode(null, "", flow.nodes["inverter"]));
+const invertorCtx = await BlockContext.fromNode<{input:boolean, out?: boolean}>(Node.parseNode(null, flow.nodes["inverter"]));
 const loggerCtx = await BlockContext.forBlockName<{data?: boolean}>("test.blocks.printer");
 
 // function logReadyState(text: string, trig: number) {

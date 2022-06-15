@@ -24,11 +24,11 @@ export const registry = {
   },
 
   registerPackage(pack: PackageDefinition | Package): Package {
-    const [ns, packageID] = Package.extractFinalFromNamespace(pack.namespace);
-
     if (!(pack instanceof Package)) {
       pack = new Package(pack.namespace, pack);
     }
+
+    const [ns, packageID] = Package.extractFinalFromNamespace(pack.namespace);
 
     rootPackage.ensurePackage(ns).addPackage(packageID, pack);
 
@@ -39,15 +39,15 @@ export const registry = {
     return rootPackage.hasPackage(namespace);
   },
 
-  getBlockInfo<BLK extends AnyBlock = AnyBlock>(blockName: string): BlockDefinition<BLK> {
-    const [ns, name] = Package.extractFinalFromNamespace(blockName);
+  getBlockInfo<BLK extends AnyBlock = AnyBlock>(blockID: string): BlockDefinition<BLK> {
+    const [ns, id] = Package.extractFinalFromNamespace(blockID);
     const pack = rootPackage.getPackage(ns);
     if (!pack)
       throw new Error(`Package not found: ${ns}`);
 
-    const blockDefinition = pack.blocks.get(name) as BlockDefinition<BLK>;
+    const blockDefinition = pack.blocks.get(id) as BlockDefinition<BLK>;
     if (!blockDefinition)
-      throw new Error(`Block ${blockName} not found`);
+      throw new Error(`Block ${blockID} not found`);
 
     return blockDefinition;
   },
@@ -61,7 +61,7 @@ export const registry = {
     const packages = buildPackageMap(new Map(), rootPackage);
 
     packages.forEach((pack) => {
-      pack.blocks.forEach((block, _key) => {
+      pack.blocks.forEach((block, _id) => {
         if (block.category)
           categories.add(block.category);
       });
@@ -75,9 +75,9 @@ export const registry = {
     const packages = buildPackageMap(new Map(), rootPackage);
 
     packages.forEach((pack) => {
-      pack.blocks.forEach((block, key) => {
+      pack.blocks.forEach((block, id) => {
         if (block.category)
-          blocks.set(pack.namespace + '.' + key, block);
+          blocks.set(pack.namespace + '.' + id, block);
       });
     });
 

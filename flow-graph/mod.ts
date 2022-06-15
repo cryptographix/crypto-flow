@@ -1,9 +1,9 @@
-export * from "./types/block.ts"
 export * from "./graph/graph.ts";
 export * from "./graph/node.ts";
 export * from "./graph/link.ts";
 export * from "./graph/port.ts";
 
+export * from "./package/block.ts"
 export * from "./package/package.ts"
 export * from "./package/package-loader.ts";
 export * from "./package/package-registry.ts"

@@ -1,13 +1,15 @@
 import {
   Block,
-  BlockDefinition,
+  //BlockDefinition,
   BlockHelper,
   BlockFactory, BlockPropertyDefinitions,
   Node,
-  BlockInstanceForIF
+  BlockInstanceForIF,
+BlockPropertyDefinition,
+Port
 } from "../mod.ts";
 
-import { AbstractBlock } from "./abstract-block.ts";
+//import { AbstractBlock } from "./abstract-block.ts";
 
 import {
   PropertyValues,
@@ -19,7 +21,7 @@ import {
   PartialPropertiesOf,
   Schema,
   PropertiesOf,
-  PropertyDefinition,
+PropertyDefinition,
 } from "../deps.ts";
 
 export type BlockStatus =
@@ -50,17 +52,28 @@ export class BlockContext<IF extends AnyInterface> {
   #status: BlockStatus = "initialized";
 
   #lastTriggerID = 0;
+  #inputsChanged = false;
 
   #setPropertyInfos() {
     const propertyDefinitions = this.#blockHelper.propertyDefinitions;
     const blockPropertyKeys = Object.keys(propertyDefinitions) as PropertyKey<IF>[];
 
+    Object.values(propertyDefinitions as BlockPropertyDefinitions<IF>).forEach( (pd) => {
+      const pdef = pd as BlockPropertyDefinition<IF>;
+
+      if (!pdef.kind) pdef.kind = "data";
+      if (!pdef.direction) {
+        pdef.direction = Port.accessorToDirection(pdef.accessors);
+      } 
+
+    })
+
     this.#inPropKeys = blockPropertyKeys.filter(
-      (key) => propertyDefinitions[key].accessors == "set"
+      (key) => ["in","bidi"].includes(propertyDefinitions[key].direction ?? "none")
     );
 
     this.#outPropKeys = blockPropertyKeys.filter(
-      (key) => propertyDefinitions[key].accessors == "get"
+      (key) => ["out","bidi"].includes(propertyDefinitions[key].direction ?? "none")
     );
   }
 
@@ -126,9 +139,13 @@ export class BlockContext<IF extends AnyInterface> {
     });
 
     this.#ready = undefined;
+
+    this.#inputsChanged = true;
   }
 
-  canTrigger(triggerID: number): boolean {
+  get inputsChanged() { return this.#inputsChanged }
+
+  canTrigger(triggerID?: number): boolean {
     if (this.#ready === undefined) {
       const block = this.block as unknown as PropertyValues<IF>;
       const propInfos: PropertyInfos<IF> = this.propertyDefinitions as unknown as PropertyInfos<IF>;
@@ -141,7 +158,7 @@ export class BlockContext<IF extends AnyInterface> {
       });
     }
 
-    return !!this.#ready && triggerID > this.#lastTriggerID;
+    return !!this.#ready && (!triggerID || (triggerID > this.#lastTriggerID));
   }
 
   /**
@@ -150,10 +167,11 @@ export class BlockContext<IF extends AnyInterface> {
    * @returns results (if any) from block processing
    */
   async trigger(triggerID: number): Promise<PropertyValues<IF>> {
-    if (this.canTrigger(triggerID)) {
+    /*if (this.canTrigger(triggerID))*/ {
       await this.block.run();
 
       this.#lastTriggerID = triggerID;
+      this.#inputsChanged = false;
 
       // done processing
       this.#ready = false;
@@ -161,16 +179,16 @@ export class BlockContext<IF extends AnyInterface> {
       const block = this.block as unknown as PropertyValues<Block<IF>>;
 
       // collect out properties and return
-      const xx = this.#outPropKeys.reduce((outputs, key) => {
+      const outputs = this.#outPropKeys.reduce((outputs, key) => {
         outputs[key] = block[key] as unknown as PropertyValue;
 
         return outputs;
       }, {} as PropertyValues<IF>);
 
-      return xx as PropertyValues<IF>;
+      return outputs as PropertyValues<IF>;
     }
 
-    return Promise.reject("not ready to process");
+    //return Promise.reject("not ready to process");
   }
 
   teardown() {
@@ -188,14 +206,16 @@ export class BlockContext<IF extends AnyInterface> {
       }
 
       case "root": case "flow": {
-        const blockDefinition: BlockDefinition<Block<IF>> = {
+        /*const blockDefinition: BlockDefinition<Block<IF>> = {
           type: "flow",
           ctor: class extends AbstractBlock { run() { } },
           propertyDefinitions: {},
           name: node.name ?? node.id,
         }
 
-        return Promise.resolve(BlockContext.for(blockDefinition));
+        return Promise.resolve(BlockContext.for("", blockDefinition));*/
+
+        break;
       }
       case "input": {
         // noop
@@ -252,7 +272,7 @@ export class BlockContext<IF extends AnyInterface> {
     node.ports.forEach((port, key) => {
       propertyDefinitions[key as keyof BlockPropertyDefinitions<IF>] = {
         dataType: port.dataType as PropertyDataTypes,
-        accessors: port.type == "in" ? "set" : "get",
+        accessors: port.direction == "in" ? "set" : "get",
       } as BlockPropertyDefinitions<IF>[keyof BlockPropertyDefinitions<IF>];
     });
 
@@ -275,11 +295,11 @@ export class BlockContext<IF extends AnyInterface> {
   //   return new BlockContext(block, block.$helper);
   // }
 
-  static async for<IF extends AnyInterface>(blockDefinition: BlockDefinition<Block<IF>>) {
-    const block = await BlockFactory.for<Block<IF>>(blockDefinition).createInstance()
+  /*static async for<IF extends AnyInterface>(id: string, blockDefinition: BlockDefinition<Block<IF>>) {
+    const block = await BlockFactory.for<Block<IF>>(id, blockDefinition).createInstance()
 
     return new BlockContext<IF>(block, block.$helper);
-  }
+  }*/
 }
 
 //type BLKIF<BLK> = BLK extends Block<infer IF> ? IF : never;

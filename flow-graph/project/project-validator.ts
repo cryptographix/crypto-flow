@@ -1,4 +1,4 @@
-import { Graph, Node, PortInfo } from '../mod.ts';
+import { Graph, Node, PortInit } from '../mod.ts';
 import { Project } from './project.ts'
 
 export type AnyFlowError = InvalidFlowError;
@@ -7,7 +7,7 @@ export type ValidationContext = {
   project: Project;
   flow?: Graph;
   node?: Node;
-  port?: PortInfo;
+  port?: PortInit;
 };
 
 export interface InvalidFlowError extends ValidationContext {
@@ -63,7 +63,7 @@ export function checkNode(
 }
 
 export function checkPort(
-  port: PortInfo,
+  port: PortInit,
   context: ValidationContext,
 ): AnyFlowError | AnyFlowError[] {
   let errors: AnyFlowError[] = [];
@@ -92,7 +92,7 @@ export function checkPort(
         };
       }
 
-      if (destPort.type !== "in") {
+      if (destPort.direction !== "in") {
         return {
           type: "invalid-flow",
           ...context,

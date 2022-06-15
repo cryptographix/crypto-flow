@@ -1,4 +1,4 @@
-import { InterfaceDefinition } from "../deps.ts";
+import { BlockInterfaceDefinition } from "../deps.ts";
 
 export interface IFBlockCipher {
   direction: "encrypt" | "decrypt";
@@ -12,12 +12,12 @@ export interface IFBlockCipher {
   blockSize: number;
 }
 
-export const IFBlockCipher: InterfaceDefinition<IFBlockCipher> = {
+export const IFBlockCipher: BlockInterfaceDefinition<IFBlockCipher> = {
   name: "IFBlockCipher",
 
   propertyDefinitions: {
-    // config
     direction: {
+      kind: "config",
       accessors: "both",
       dataType: "enum",
       default: "encrypt",

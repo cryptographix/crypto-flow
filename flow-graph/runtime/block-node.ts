@@ -1,5 +1,5 @@
 import { BlockContext } from "./block-context.ts";
-import { Node, LinkInfo, PortInfo, Block } from "../mod.ts";
+import { Node, LinkInit, PortInit, Block } from "../mod.ts";
 import { AnyObject } from "../deps.ts";
 import { AbstractBlock } from "./abstract-block.ts";
 
@@ -11,20 +11,25 @@ export class BlockNode<IF = AnyObject, BLK extends Block<IF> = AbstractBlock<IF>
   #outputConnections = new Map<string, Connection[]>();
   #loading: Promise<unknown> | null;
 
-  readonly id: string;
-
-  constructor(public node: Node) {
-    this.id = node.id;
-
+  constructor(public readonly id: string, public node: Node) {
     this.#loading = BlockContext.fromNode<BLK>(node)
       .then((bc) => {
-        this.#blockContext = bc;
-        this.#loading = null;
+        // check if still loading, may have been finalized()
+        if (this.#loading) {
+          this.#blockContext = bc;
+          this.#loading = null;
+        }
       });
   }
 
   loadBlock(): Promise<unknown> {
     return this.#loading ?? Promise.resolve();
+  }
+
+  finalize() {
+    this.#loading = null;
+    this.#blockContext = undefined;
+    this.#outputConnections.clear();
   }
 
   get context(): BlockContext<BLK> {
@@ -51,8 +56,8 @@ export class BlockNode<IF = AnyObject, BLK extends Block<IF> = AbstractBlock<IF>
 
 export class Connection {
   constructor(
-    public port: PortInfo,
-    public link: LinkInfo,
+    public port: PortInit,
+    public link: LinkInit,
     public targetNode: BlockNode
   ) { }
 }

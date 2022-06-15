@@ -33,7 +33,7 @@ export class ImportDefinition {
   static parseJSON(namespace: string, value: JSONValue): ImportDefinition {
 
     if (Array.isArray(value) || JSONValue.isString(value)) {
-      const urls = Array.isArray(value) ? JSONValue.asStringArray(value) : [JSONValue.asString(value)]
+      const urls = Array.isArray(value) ? JSONValue.asStringArray(value) : [JSONValue.asString(value)!]
 
       return new ImportDefinition(
         namespace,
@@ -51,8 +51,8 @@ export class ImportDefinition {
 
     return new ImportDefinition(namespace,
       {
-        moduleURLs: Array.isArray(url) ? JSONValue.asStringArray(url) : [JSONValue.asString(url)],
-        importFilters: JSONValue.isUndefined(filters) ? [] : JSONValue.asString(filters).split(',')
+        moduleURLs: Array.isArray(url) ? JSONValue.asStringArray(url) : [JSONValue.asString(url)!],
+        importFilters: JSONValue.isUndefined(filters) ? [] : JSONValue.asString(filters)!.split(',')
       });
   }
 
