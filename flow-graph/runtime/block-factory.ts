@@ -1,12 +1,14 @@
-import { AnyInterface, PartialPropertiesOf, PropertiesOf, PropertyValue, Schema } from "../deps.ts";
-import { AnyBlock, Block, BlockConstructor, BlockDefinition, BlockHelper, BlockPropertiesOf, BlockPropertyDefinition, BlockPropertyDefinitions, BlockType, registry } from "../mod.ts";
+import { AnyInterface, PropertiesOf, PropertyValue, PropertyValues, Schema, PropertyKey, PropertyInfos } from "../deps.ts";
+import { AnyBlock, Block, BlockConstructor, BlockDefinition, BlockHelper, BlockPropertiesOf, BlockPropertyDefinition, BlockPropertyDefinitions, BlockType, HasBlockHelper, PartialBlockPropertiesOf, Port, registry } from "../mod.ts";
 
 type ExtractBlockIF<BLK extends AnyBlock> = BLK extends Block<infer IF> ? IF : never;
 
 export type BlockMethods<BLK> = {
-  run(): void | Promise<void>; setup(config: PartialPropertiesOf<BLK>): void; teardown(): void;
+  run(): void | Promise<void>;
+  setup(config: PartialBlockPropertiesOf<BLK>): void;
+  teardown(): void;
 }
-export type BlockInstance<BLK extends AnyBlock> = BLK & BlockMethods<BLK> & ExtractBlockIF<BLK>;
+export type BlockInstance<BLK extends AnyBlock> = BLK & BlockMethods<BLK> & HasBlockHelper<BLK> & ExtractBlockIF<BLK>;
 export type BlockInstanceForIF<IF extends AnyInterface> = Block<IF> & BlockMethods<Block<IF>> & IF;
 
 export class BlockFactory<BLK extends AnyBlock> {
@@ -52,7 +54,7 @@ export class BlockFactory<BLK extends AnyBlock> {
       ? new ctor()
       : await ctor();
 
-    const blockHelper = new BlockHelperImpl(block, blockDefinition);
+    const blockHelper = new BlockHelperImpl<BLK>(block, blockDefinition);
 
     Object.defineProperties(block, {
       '$helper': {
@@ -64,13 +66,13 @@ export class BlockFactory<BLK extends AnyBlock> {
     });
 
     if (!block.setup) {
-      const func = (config: PartialPropertiesOf<BLK>) => { return block.$helper.setup(config!); };
+      const func = (config: PartialBlockPropertiesOf<BLK>) => { return blockHelper.setup(config!); };
 
       block.setup = func;
     }
 
     if (!block.teardown) {
-      const func = () => { block.$helper.teardown(); };
+      const func = () => { blockHelper.teardown(); };
 
       block.teardown = func;
     }
@@ -120,27 +122,132 @@ export class BlockHelperImpl<BLK extends AnyBlock> implements BlockHelper<BLK>
 {
   #block: WeakRef<BLK>;
 
-  readonly propertyDefinitions!: BlockPropertyDefinitions<BLK>;
-
   readonly blockDefinition: BlockDefinition<BLK>;
 
+  readonly propertyDefinitions!: BlockPropertyDefinitions<BLK>;
+
+  #inPropKeys: PropertyKey<BLK>[] = [];
+
+  #outPropKeys: PropertyKey<BLK>[] = [];
+
+  #setPropertyInfos() {
+    const propertyDefinitions = this.propertyDefinitions;
+    const blockPropertyKeys = Object.keys(propertyDefinitions) as PropertyKey<BLK>[];
+
+    Object.values(propertyDefinitions as BlockPropertyDefinitions<BLK>).forEach((pd) => {
+      const pdef = pd as BlockPropertyDefinition<BLK>;
+
+      if (!pdef.kind) pdef.kind = "data";
+      if (!pdef.direction) {
+        pdef.direction = Port.accessorToDirection(pdef.accessors);
+      }
+    })
+
+    this.#inPropKeys = blockPropertyKeys.filter(
+      (key) => ["in", "bidi"].includes(propertyDefinitions[key].direction ?? "none")
+    );
+
+    this.#outPropKeys = blockPropertyKeys.filter(
+      (key) => ["out", "bidi"].includes(propertyDefinitions[key].direction ?? "none")
+    );
+  }
   get block(): BLK { return this.#block.deref()!; }
 
-  constructor(bloc: BLK, blockDefinition: BlockDefinition<BLK>) {
-    this.#block = new WeakRef(bloc);
+  constructor(block: BLK, blockDefinition: BlockDefinition<BLK>) {
+    this.#block = new WeakRef(block);
 
     this.blockDefinition = blockDefinition;
 
     this.propertyDefinitions = {
       ...blockDefinition.propertyDefinitions
     };
+
+    // Cache property keys
+    this.#setPropertyInfos();
+
+    //this.#ready = undefined;
+  }
+
+  #inputsChanged = false;
+  resetInputs() {
+    const block: Partial<PropertyValues<BLK>> = this
+      .block as unknown as PropertyValues<BLK>;
+
+    // store supplied inputs ...
+    this.#inPropKeys.forEach((key) => {
+      block[key] = undefined;
+    });
+
+    this.#ready = undefined;
+
+    this.#inputsChanged = true;
+  }
+
+  set inputs(values: Partial<PropertyValues<BLK>>) {
+    const block = this.block as unknown as PropertyValues<BLK>;
+
+    // store supplied inputs ...
+    this.#inPropKeys.forEach((key) => {
+      if (values[key] !== undefined) {
+        block[key] = values[key]!;
+      }
+    });
+
+    this.#ready = undefined;
+
+    this.#inputsChanged = true;
+  }
+
+  get inputsChanged() { return this.#inputsChanged }
+
+  #ready?: boolean;
+  get ready(): boolean {
+    if (this.#ready === undefined) {
+      if (this.block.ready instanceof Function) {
+        this.#ready = this.block.ready();
+      }
+      else {
+        const block = this.block as unknown as PropertyValues<BLK>;
+
+        const propInfos: PropertyInfos<BLK> = this.propertyDefinitions as unknown as PropertyInfos<BLK>;
+
+        // all required inputs present ...
+        this.#ready = this.#inPropKeys.every((key) => {
+          const propInfo = propInfos[key];
+
+          return block[key] !== undefined || propInfo.optional;
+        });
+      }
+    }
+
+    return this.#ready!;
+  }
+
+  done() {
+    this.#inputsChanged = false;
+
+    // done processing
+    this.#ready = false;
+  }
+
+  get outputs(): PropertyValues<BLK> {
+    const block = this.block;
+
+    // collect out properties and return
+    const outputs = this.#outPropKeys.reduce((outputs, key) => {
+      outputs[key] = block[key] as unknown as PropertyValue;
+
+      return outputs;
+    }, {} as PropertyValues<BLK>);
+
+    return outputs;
   }
 
   /**
    * 
    * @param initProperties 
    */
-  init(initProperties: Partial<BlockPropertiesOf<BLK>>) {
+  init(initProperties: PartialBlockPropertiesOf<BLK>) {
     const block = this.block;
 
     // Initialize each property from Schema information
@@ -163,7 +270,7 @@ export class BlockHelperImpl<BLK extends AnyBlock> implements BlockHelper<BLK>
    * 
    * @param config 
    */
-  setup(config: Partial<BlockPropertiesOf<BLK>>) {
+  setup(config: PartialBlockPropertiesOf<BLK>) {
     const block = this.block;
 
     for (const [key, _propInfo] of Object.entries(this.propertyDefinitions)) {

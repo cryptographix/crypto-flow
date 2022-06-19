@@ -1,17 +1,12 @@
 import {
   Block,
-  BlockDefinition,
-  BlockHelper
-} from "../deps.ts";
+  BlockDefinition} from "../deps.ts";
 import { IFBlockCipher } from "../interfaces/block-cipher.ts";
 
 type IN = Pick<IFBlockCipher, "plainText" | "key" | "direction">;
 type OUT = Pick<IFBlockCipher, "cipherText" | "blockSize">;
 
 class DESBlockCipherBlock implements Block<DESBlockCipherBlock>, IFBlockCipher {
-  $helper!: BlockHelper<this>;
-
-//class DESBlockCipherBlock extends AbstractBlock<DESBlockCipherBlock> implements IFBlockCipher {
   direction: "encrypt" | "decrypt" = "encrypt";
 
   key!: Uint8Array;

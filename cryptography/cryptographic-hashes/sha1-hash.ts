@@ -1,9 +1,6 @@
 import { Block, BlockDefinition, BlockHelper } from "../deps.ts";
 import { IFCryptographicHash } from "../interfaces/cryptographic-hash.ts";
 
-type IN = Pick<IFCryptographicHash, "dataIn">;
-type OUT = Pick<IFCryptographicHash, "hashValue" | "hashSize">;
-
 class SHA1HashBlock
   implements Block<IFCryptographicHash>, IFCryptographicHash {
   //
@@ -11,7 +8,7 @@ class SHA1HashBlock
 
   dataIn!: Uint8Array;
 
-  hashSize!: number;
+  hashSizeBits!: number;
 
   hashValue!: Uint8Array;
 
@@ -43,8 +40,8 @@ export const SHA1Hash: BlockDefinition<SHA1HashBlock> = {
       minLength: 20,
       maxLength: 20,
     },
-    hashSize: {
-      ...IFCryptographicHash.propertyDefinitions.hashSize,
+    hashSizeBits: {
+      ...IFCryptographicHash.propertyDefinitions.hashSizeBits,
       default: 160,
       constant: true,
     },

@@ -1300,7 +1300,7 @@ export { SHA1Hash as SHA1Hash };
 const packageDefinition = {
     "namespace": "org.cryptographix.cryptography",
     packages: {
-        "block_ciphers": {
+        "blockciphers": {
             interfaces: {
                 "IFBlockCipher": IFBlockCipher
             },
@@ -1309,7 +1309,7 @@ const packageDefinition = {
                 "DESBlockCipher": DESBlockCipher
             }
         },
-        "block_ciphers.modes": {
+        "blockciphers.modes": {
             blocks: {
                 "CBCBlockCipherMode": CBCBlockCipherMode
             }

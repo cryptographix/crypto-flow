@@ -1,27 +1,17 @@
 import {
   Block,
-  //BlockDefinition,
   BlockHelper,
-  BlockFactory, BlockPropertyDefinitions,
-  Node,
+  BlockPropertyDefinitions,
+  PartialBlockPropertiesOf,
+  BlockFactory,
   BlockInstanceForIF,
-BlockPropertyDefinition,
-Port
+  Node,
 } from "../mod.ts";
-
-//import { AbstractBlock } from "./abstract-block.ts";
 
 import {
   PropertyValues,
   PropertyDataTypes,
-  PropertyKey,
-  PropertyInfos,
-  PropertyValue,
   AnyInterface,
-  PartialPropertiesOf,
-  Schema,
-  PropertiesOf,
-PropertyDefinition,
 } from "../deps.ts";
 
 export type BlockStatus =
@@ -36,129 +26,48 @@ export type BlockStatus =
 /**
  * BlockContext holds runtime state for a Block within a Network
  *
- * Contains a Block instance and a fresh copy of BlockInfo.
+ * Contains a Block instance and its BlockHelper instance.
  */
 export class BlockContext<IF extends AnyInterface> {
   #block: BlockInstanceForIF<IF>;
 
   #blockHelper: BlockHelper<Block<IF>>;
 
-  #inPropKeys: PropertyKey<IF>[] = [];
-
-  #outPropKeys: PropertyKey<IF>[] = [];
-
-  #ready?: boolean;
-
   #status: BlockStatus = "initialized";
 
   #lastTriggerID = 0;
-  #inputsChanged = false;
-
-  #setPropertyInfos() {
-    const propertyDefinitions = this.#blockHelper.propertyDefinitions;
-    const blockPropertyKeys = Object.keys(propertyDefinitions) as PropertyKey<IF>[];
-
-    Object.values(propertyDefinitions as BlockPropertyDefinitions<IF>).forEach( (pd) => {
-      const pdef = pd as BlockPropertyDefinition<IF>;
-
-      if (!pdef.kind) pdef.kind = "data";
-      if (!pdef.direction) {
-        pdef.direction = Port.accessorToDirection(pdef.accessors);
-      } 
-
-    })
-
-    this.#inPropKeys = blockPropertyKeys.filter(
-      (key) => ["in","bidi"].includes(propertyDefinitions[key].direction ?? "none")
-    );
-
-    this.#outPropKeys = blockPropertyKeys.filter(
-      (key) => ["out","bidi"].includes(propertyDefinitions[key].direction ?? "none")
-    );
-  }
 
   constructor(block: BlockInstanceForIF<IF>, blockHelper: BlockHelper<Block<IF>>) {
     this.#block = block;
     this.#blockHelper = blockHelper;
-
-    // Cache property keys
-    this.#setPropertyInfos();
   }
 
   get block(): BlockInstanceForIF<IF> { return this.#block; }
   get blockHelper(): BlockHelper<Block<IF>> { return this.#blockHelper; }
   get propertyDefinitions() { return this.#blockHelper.propertyDefinitions; }
 
-  initializeBlock(config: PartialPropertiesOf<Block<IF>>) {
-    // Initialize each property from Schema information
-    // Precedence:
-    //   1. config parameter
-    //   2. initial value from class
-    //   3. "default" value from schema property.default
-    //   4. the default for property type
-    for (const [key, propInfo] of Object.entries(this.propertyDefinitions)) {
-      Schema.initPropertyFromPropertyType<PropertiesOf<Block<IF>>>(
-        propInfo as PropertyDefinition<keyof PropertiesOf<Block<IF>>>,
-        this.#block,
-        key as keyof PropertiesOf<Block<IF>>,
-        config[key as keyof AnyInterface] as PropertyValue,
-        false);
-    }
-  }
-
-  async setup(cfg: PartialPropertiesOf<IF>) {
-    if (this.block.setup)
-      await this.block.setup(cfg);
-    else {
-      this.blockHelper.setup(cfg);
-    }
-
-    this.#ready = undefined;
-  }
-
-  clearInputs() {
-    const block: Partial<PropertyValues<IF>> = this
-      .block as unknown as PropertyValues<IF>;
-
-    // store supplied inputs ...
-    this.#inPropKeys.forEach((key) => {
-      block[key] = undefined;
-    });
-
-    this.#ready = undefined;
+  resetInputs() {
+    this.#blockHelper.resetInputs();
   }
 
   setInputs(values: Partial<PropertyValues<IF>>) {
-    const block = this.block as unknown as PropertyValues<IF>;
-
-    // store supplied inputs ...
-    this.#inPropKeys.forEach((key) => {
-      if (values[key] !== undefined) {
-        block[key] = values[key]!;
-      }
-    });
-
-    this.#ready = undefined;
-
-    this.#inputsChanged = true;
+    this.#blockHelper.inputs = values;
   }
 
-  get inputsChanged() { return this.#inputsChanged }
+  getOutputs(): PropertyValues<IF> {
+    return this.#blockHelper.outputs as PropertyValues<IF>;
+  }
+
+  async setup(cfg: PartialBlockPropertiesOf<IF>) {
+    if (this.block.setup)
+      await this.block.setup(cfg);
+    else
+      this.blockHelper.setup(cfg);
+  }
 
   canTrigger(triggerID?: number): boolean {
-    if (this.#ready === undefined) {
-      const block = this.block as unknown as PropertyValues<IF>;
-      const propInfos: PropertyInfos<IF> = this.propertyDefinitions as unknown as PropertyInfos<IF>;
 
-      // all required inputs present ...
-      this.#ready = this.#inPropKeys.every((key) => {
-        const propInfo = propInfos[key];
-
-        return block[key] !== undefined || propInfo.optional;
-      });
-    }
-
-    return !!this.#ready && (!triggerID || (triggerID > this.#lastTriggerID));
+    return this.blockHelper.ready && (!triggerID || (triggerID > this.#lastTriggerID));
   }
 
   /**
@@ -171,27 +80,19 @@ export class BlockContext<IF extends AnyInterface> {
       await this.block.run();
 
       this.#lastTriggerID = triggerID;
-      this.#inputsChanged = false;
 
       // done processing
-      this.#ready = false;
+      this.#blockHelper.done();
 
-      const block = this.block as unknown as PropertyValues<Block<IF>>;
-
-      // collect out properties and return
-      const outputs = this.#outPropKeys.reduce((outputs, key) => {
-        outputs[key] = block[key] as unknown as PropertyValue;
-
-        return outputs;
-      }, {} as PropertyValues<IF>);
-
-      return outputs as PropertyValues<IF>;
+      return this.#blockHelper.outputs as PropertyValues<IF>;
     }
 
     //return Promise.reject("not ready to process");
   }
 
   teardown() {
+    this.#block.teardown();
+
     this.#status = "finalized";
   }
 
@@ -233,39 +134,19 @@ export class BlockContext<IF extends AnyInterface> {
 
     // noop
     const bc = new BlockContext(null as unknown as BlockInstanceForIF<IF>, null as unknown as BlockHelper<BlockInstanceForIF<IF>>);
+
     return Promise.resolve(bc as BlockContext<IF>);
   }
 
-  static forBlockName<IF>(blockName: string) {
+  static async forBlockName<IF>(blockName: string) {
     const factory = new BlockFactory<Block<IF>>("block", blockName);
 
-    return factory.createInstance().then(
-      (block) => {
-        return new BlockContext<IF>(block, block.$helper);
-
-      }
-    );
+    const block = await factory.createInstance();
+    return new BlockContext<IF>(block, block.$helper);
   }
 
   static async fromCodeNode<IF extends AnyInterface>(node: Node): Promise<BlockContext<IF>> {
     const code = node.block!.code as string;
-
-    // const url = "data:text/javascript," + code;
-
-    // const module = await import(url);
-
-    // if (module.default instanceof Function) {
-    //   const blockFunc = module.default;
-
-    //   const blockCtor: BlockConstructor<Block<IF>> = class {
-    //     async run() {
-    //       const ret = await blockFunc(this);
-
-    //       if (ret instanceof Object) {
-    //         Object.assign(this, ret);
-    //       }
-    //     }
-    //   } as BlockConstructor<Block<IF>>;
 
     const propertyDefinitions = {} as BlockPropertyDefinitions<IF>;
 
@@ -282,24 +163,4 @@ export class BlockContext<IF extends AnyInterface> {
 
     return new BlockContext<IF>(block, block.$helper) as BlockContext<IF>;
   }
-
-  // static async fromLoader<IF extends AnyInterface>(
-  //   loader: PackageLoader,
-  //   blockName: string
-  // ): Promise<BlockContext<IF>> {
-
-  //   await loader.loadPackages();
-
-  //   const block = await new BlockFactory<Block<IF>>("block", blockName).createInstance();
-
-  //   return new BlockContext(block, block.$helper);
-  // }
-
-  /*static async for<IF extends AnyInterface>(id: string, blockDefinition: BlockDefinition<Block<IF>>) {
-    const block = await BlockFactory.for<Block<IF>>(id, blockDefinition).createInstance()
-
-    return new BlockContext<IF>(block, block.$helper);
-  }*/
 }
-
-//type BLKIF<BLK> = BLK extends Block<infer IF> ? IF : never;

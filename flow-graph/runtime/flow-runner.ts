@@ -84,7 +84,13 @@ export class FlowRunner {
 
     const nodes = Array.from(this.#nodes.values());
 
-    return Promise.all(nodes.map((bn) => bn.loadBlock()));
+    return Promise.all(nodes.map((bn) => {
+      return bn.loadBlock()
+        .catch(e => {
+          console.log("error loading block", e, bn.id, bn.node.block)
+        });
+    }
+    ));
   }
 
   teardownNetwork() {
@@ -120,7 +126,7 @@ export class FlowRunner {
 
     if (allowRetriggers) {
       for (const [_nodeID, node] of this.#nodes) {
-        if (node.context.inputsChanged && node.context.canTrigger())
+        if (node.context.blockHelper.inputsChanged && node.context.canTrigger())
           return node;
       }
     }
@@ -129,8 +135,8 @@ export class FlowRunner {
     return undefined;
   }
 
-  triggerNode(node: BlockNode): Promise<BlockNode>;
-  triggerNode(node?: BlockNode): null | Promise<BlockNode> {
+  //triggerNode(node: BlockNode): Promise<BlockNode>;
+   triggerNode(node?: BlockNode): Promise<BlockNode> | null {
     const selectedNode = node ?? this.nextReadyNode();
 
     if (selectedNode) {
@@ -147,7 +153,7 @@ export class FlowRunner {
 
               const values = { [con.link.portID]: output[portID as keyof PropertyValues<AnyInterface>] };
 
-              targetNode.context.setInputs(values);
+              targetNode.context.blockHelper.inputs = values;
             }
           }
         }

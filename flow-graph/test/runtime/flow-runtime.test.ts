@@ -22,8 +22,8 @@ test("Runner: Trigger sequence", async () => {
   for (const val of [true, false]) {
     runner.nodes.get("inverter")?.context.setInputs({ input: val } as Record<string, unknown>);
 
-    const trace: (string|number)[] = [];
-    trigs.push( { [val ? "true" : "false"]: trace });
+    const trace: (string | number)[] = [];
+    trigs.push({ [val ? "true" : "false"]: trace });
 
     let trig = runner.nextTriggerID();
     trace.push(trig);
@@ -50,5 +50,5 @@ test("Runner: Trigger sequence", async () => {
     }
   }
 
-  assertEquals( JSON.stringify(trigs), '[{"true":[1,"inverter","node-2",2]},{"false":[3,"inverter","node-2",4]}]')
+  assertEquals(JSON.stringify(trigs), '[{"true":[1,"inverter","node-2",2]},{"false":[3,"inverter","node-2",4]}]')
 })

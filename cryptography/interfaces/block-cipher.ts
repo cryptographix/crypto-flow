@@ -18,19 +18,18 @@ export const IFBlockCipher: BlockInterfaceDefinition<IFBlockCipher> = {
   propertyDefinitions: {
     direction: {
       kind: "config",
-      accessors: "both",
       dataType: "enum",
       default: "encrypt",
       options: ["encrypt", "decrypt"],
     },
 
     // in
-    plainText: { accessors: "set", dataType: "u8[]" },
-    key: { accessors: "set", dataType: "u8[]" },
+    plainText: { direction: "in", dataType: "u8[]" },
+    key: { direction: "in", dataType: "u8[]" },
 
     // out
-    blockSize: { accessors: "get", dataType: "integer" },
-    cipherText: { accessors: "get", dataType: "u8[]" },
+    blockSize: { direction: "out", accessors: "get", dataType: "integer" },
+    cipherText: { direction: "out", dataType: "u8[]" },
   }
 };
 

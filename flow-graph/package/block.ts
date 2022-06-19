@@ -1,8 +1,8 @@
 import {
   PropertyDefinition,
-  PartialPropertiesOf,
   AnyInterface,
   InterfaceDefinition,
+PropertyValues,
 } from "../deps.ts";
 
 /**
@@ -47,6 +47,8 @@ export type BlockPropertiesOf<BLK> = {
   [K in keyof Omit<BLK, '$helper' | 'setup' | 'teardown' | 'run' | 'ready' | 'validate'>]-?: BLK[K];
 };
 
+export type PartialBlockPropertiesOf<BLK> = Partial<BlockPropertiesOf<BLK>>;
+
 export type BlockPropertyDefinitions<BLK> = {
   [K in keyof BlockPropertiesOf<BLK>]-?: BlockPropertyDefinition<BLK[K]>;
 };
@@ -63,30 +65,43 @@ export interface BlockHelper<BLK extends AnyBlock> {
   readonly propertyDefinitions: BlockPropertyDefinitions<BLK>;
 
   //
-  init(initData: Partial<BlockPropertiesOf<BLK>>): void;
+  init(initData: PartialBlockPropertiesOf<BLK>): void;
 
   //
-  setup(config: Partial<BlockPropertiesOf<BLK>>): void;
+  setup(config: PartialBlockPropertiesOf<BLK>): void;
 
   //
   teardown(): void;
+
+  //
+  ready: boolean;
+
+  inputsChanged: boolean;
+
+  resetInputs(): void;
+
+  set inputs(values: Partial<PropertyValues<BLK>>);
+
+  get outputs(): PropertyValues<BLK>;
+
+  done(): void;
 }
 
 export interface Block<IF extends AnyInterface = AnyInterface> {
   /**
    * Auto-injected Helper object
    */
-  $helper: BlockHelper<Block<IF>>;
+  //$helper: BlockHelper<Block<IF>>;
 
   /**
    * Setup `Block` using config
    */
-  setup?(config: PartialPropertiesOf<IF>): void | Promise<void>;
+  setup?(config: PartialBlockPropertiesOf<IF>): void | Promise<void>;
 
   /**
    * Returns true if block can be run.
    */
-  ready?(): boolean | Promise<boolean>;
+  ready?(): boolean;
 
   /**
    * Execute Block, processing input properties to generate output properties.
@@ -99,6 +114,13 @@ export interface Block<IF extends AnyInterface = AnyInterface> {
    * Finalize block, releasing any resources
    */
   teardown?(): void | Promise<void>;
+}
+
+export interface HasBlockHelper<IF extends AnyInterface = AnyInterface> {
+  /**
+   * Auto-injected Helper object
+   */
+   $helper: BlockHelper<Block<IF>>;
 }
 
 export type AnyBlock = Block<AnyInterface>;

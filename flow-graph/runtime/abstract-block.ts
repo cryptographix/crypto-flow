@@ -1,8 +1,5 @@
-import {
-  PartialPropertiesOf,
-  AnyInterface,
-} from "../deps.ts";
-import { BlockHelper, Block } from "../mod.ts";
+import { AnyInterface } from "../deps.ts";
+import { BlockHelper, Block, HasBlockHelper, PartialBlockPropertiesOf } from "../mod.ts";
 
 /**
  * Block is an interface for processing nodes, to be extended
@@ -17,7 +14,7 @@ import { BlockHelper, Block } from "../mod.ts";
  *  CFG: configuration properties supplied at block setup time.
  * that
  */
-export abstract class AbstractBlock<IF extends AnyInterface = AnyInterface> implements Block<IF> {
+export abstract class AbstractBlock<IF extends AnyInterface = AnyInterface> implements Block<IF>, HasBlockHelper<IF> {
   /**
    * Auto-injected Helper object
    */
@@ -26,7 +23,7 @@ export abstract class AbstractBlock<IF extends AnyInterface = AnyInterface> impl
   /**
    * Setup `Block` using config
    */
-  setup(config: PartialPropertiesOf<IF>): void | Promise<void> {
+  setup(config: PartialBlockPropertiesOf<IF>): void | Promise<void> {
     this.$helper.setup(config);
   }
 

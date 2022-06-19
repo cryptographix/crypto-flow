@@ -21,7 +21,7 @@ export const packageDefinition: PackageDefinition = {
   "namespace": "org.cryptographix.cryptography",
 
   packages: {
-    "block_ciphers": {
+    "blockciphers": {
       interfaces: {
         "IFBlockCipher": IFBlockCipher,
       },
@@ -30,7 +30,7 @@ export const packageDefinition: PackageDefinition = {
         "DESBlockCipher": DESBlockCipher,
       }
     },
-    "block_ciphers.modes": {
+    "blockciphers.modes": {
       blocks: {
         "CBCBlockCipherMode": CBCBlockCipherMode,
       }

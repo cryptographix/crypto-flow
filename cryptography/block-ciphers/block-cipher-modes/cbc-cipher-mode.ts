@@ -1,9 +1,8 @@
+import { BlockHelper, HasBlockHelper, PartialBlockPropertiesOf } from "../../../flow-graph/mod.ts";
 import {
   BlockInstance, BlockInstanceForIF,
   Block,
   BlockDefinition,
-  BlockHelper,
-  PartialPropertiesOf,
 } from "../../deps.ts";
 import { IFBlockCipher } from "../../interfaces/block-cipher.ts";
 
@@ -11,9 +10,9 @@ interface IFBlockCipherMode extends IFBlockCipher {
   blockCipher: BlockInstanceForIF<IFBlockCipher>;
 }
 
-class CBCCipherModeBlock implements Block<CBCCipherModeBlock>, IFBlockCipherMode {
-  $helper!: BlockHelper<CBCCipherModeBlock>;
-
+class CBCCipherModeBlock implements Block<CBCCipherModeBlock>, HasBlockHelper<CBCCipherModeBlock>, IFBlockCipherMode {
+  $helper!: BlockHelper<Block<CBCCipherModeBlock>>;
+  
   blockCipher!: BlockInstance<Block<IFBlockCipher>>;
 
   direction: "encrypt" | "decrypt" = "encrypt";
@@ -28,7 +27,7 @@ class CBCCipherModeBlock implements Block<CBCCipherModeBlock>, IFBlockCipherMode
 
   cipherText!: Uint8Array;
 
-  setup(config: PartialPropertiesOf<CBCCipherModeBlock>) {
+  setup(config: PartialBlockPropertiesOf<CBCCipherModeBlock>) {
     const { key, direction } = config;
 
     this.$helper.setup(config);

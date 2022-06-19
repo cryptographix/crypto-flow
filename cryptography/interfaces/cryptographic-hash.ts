@@ -1,19 +1,20 @@
-import { InterfaceDefinition } from "../deps.ts";
+import { BlockInterfaceDefinition } from "../deps.ts";
 
 export interface IFCryptographicHash {
   dataIn: Uint8Array;
 
   hashValue: Uint8Array;
 
-  hashSize: number;
+  hashSizeBits: number;
 }
 
-export const IFCryptographicHash: InterfaceDefinition<IFCryptographicHash> = {
+export const IFCryptographicHash: BlockInterfaceDefinition<IFCryptographicHash> = {
   name: "IFCryptographicHash",
-  propertyDefinitions: {
-    dataIn: { accessors: "set", dataType: "u8[]" },
 
-    hashSize: { accessors: "get", dataType: "integer" },
-    hashValue: { accessors: "get", dataType: "u8[]" },
+  propertyDefinitions: {
+    dataIn: { direction: "in", dataType: "u8[]" },
+
+    hashSizeBits: { direction: "out", dataType: "integer" },
+    hashValue: { direction: "out", dataType: "u8[]" },
   },
 };

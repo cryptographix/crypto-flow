@@ -1,4 +1,4 @@
-import { Block, BlockDefinition, BlockHelper } from "../deps.ts";
+import { Block, BlockDefinition } from "../deps.ts";
 import { IFBlockCipher } from "../interfaces/block-cipher.ts";
 
 const AES_BLOCK_BYTES = 16;
@@ -11,8 +11,6 @@ const AES_BLOCK_BYTES = 16;
  */
 class AESBlockCipherBlock
   implements Block<IFBlockCipher>, IFBlockCipher {
-  readonly $helper!: BlockHelper<this>;
-
   //
   direction: "encrypt" | "decrypt" = "encrypt";
 
@@ -27,6 +25,13 @@ class AESBlockCipherBlock
   plainText!: Uint8Array;
 
   cipherText!: Uint8Array;
+
+  /**
+   * Must implement ready(), since 'key' property has a setter but no getter 
+   */
+  ready() {
+    return this.#cryptoKey!==undefined && this.plainText!==undefined;
+  }
 
   async run(): Promise<void> {
     const { plainText } = this;

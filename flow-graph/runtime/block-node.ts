@@ -28,7 +28,10 @@ export class BlockNode<IF = AnyObject, BLK extends Block<IF> = AbstractBlock<IF>
 
   finalize() {
     this.#loading = null;
+
+    this.#blockContext?.teardown();
     this.#blockContext = undefined;
+
     this.#outputConnections.clear();
   }
 
@@ -59,5 +62,7 @@ export class Connection {
     public port: PortInit,
     public link: LinkInit,
     public targetNode: BlockNode
-  ) { }
+  ) {
+    // ...
+  }
 }
