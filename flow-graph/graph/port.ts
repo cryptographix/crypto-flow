@@ -115,7 +115,7 @@ export class Port<T = unknown> {
       return links;
     }, [] as JSONObject[]);
 
-    return JSONObject.removeNullOrUndefined({
+    return JSONObject.clean({
       kind,
       direction,
       name,

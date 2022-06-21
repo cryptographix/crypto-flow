@@ -58,7 +58,7 @@ export class Graph extends Node {
       return ports;
     }, {} as JSONObject);
 
-    return JSONObject.removeNullOrUndefined({
+    return JSONObject.clean({
       type,
       name,
       nodes,

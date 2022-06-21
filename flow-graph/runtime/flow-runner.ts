@@ -1,19 +1,11 @@
-import { AnyInterface, PropertyValues } from "../deps.ts";
 import { Connection } from "../mod.ts";
 import { Graph } from "../mod.ts";
-import { BlockNode } from "./block-node.ts";
+import { NodeRunner } from "./node-runner.ts";
 
-export class FlowRunner {
+export class FlowRunner extends NodeRunner {
   #triggerID = 0;
-  #nodes = new Map<string, BlockNode>();
 
-  //readonly root: BlockNode;
-
-  get nodes() {
-    return this.#nodes;
-  }
-
-  get triggerID() { return this.#triggerID }
+  #nodes = new Map<string, NodeRunner>();
 
   #buildNetwork(flow: Graph) {
     // reset
@@ -21,7 +13,7 @@ export class FlowRunner {
 
     // create a BlockNode for each Node
     for (const [nodeID, node] of flow.nodes.entries()) {
-      const blockNode = new BlockNode(nodeID, node);
+      const blockNode = new NodeRunner(nodeID, node);
 
       this.#nodes.set(nodeID, blockNode);
     }
@@ -52,9 +44,9 @@ export class FlowRunner {
     this.#nodes.clear();
   }
 
-  #findReadyLinkedNode(sourceNode: BlockNode): BlockNode | null {
+  #findReadyLinkedNode(sourceNode: NodeRunner): NodeRunner | null {
     for (const [portID, _port] of sourceNode.node.ports) {
-      const cons = sourceNode.getOutputConnections(portID);
+      const cons = sourceNode.getOutputConnectionsForPort(portID);
 
       for (const con of cons) {
         const targetNode = con.targetNode;
@@ -73,9 +65,12 @@ export class FlowRunner {
   /**
    * 
    */
-  constructor(public readonly flow: Graph) {
-    //this.root = new BlockNode(flow);
+  constructor(public flowID: string, public readonly flow: Graph) {
+    super(flowID, flow);
   }
+
+  get nodes() { return this.#nodes; }
+  get triggerID() { return this.#triggerID }
 
   setupNetwork() {
     this.#buildNetwork(this.flow);
@@ -85,9 +80,9 @@ export class FlowRunner {
     const nodes = Array.from(this.#nodes.values());
 
     return Promise.all(nodes.map((bn) => {
-      return bn.loadBlock()
+      return bn.load()
         .catch(e => {
-          console.log("error loading block", e, bn.id, bn.node.block)
+          console.log("error loading block", e, bn.nodeID, bn.node.block)
         });
     }
     ));
@@ -104,62 +99,72 @@ export class FlowRunner {
     return this.#triggerID;
   }
 
-  #triggeredNodes: BlockNode[] = [];
-  hasTriggered(node: BlockNode) {
+  #triggeredNodes: NodeRunner[] = [];
+  hasTriggered(node: NodeRunner) {
     return this.#triggeredNodes.includes(node);
   }
 
-  nextReadyNode(allowRetriggers = false): BlockNode | undefined {
-    // tail-end already triggered nodes
-    for (let index = this.#triggeredNodes.length; index > 0; --index) {
-      const node = this.#findReadyLinkedNode(this.#triggeredNodes[index - 1]);
+  nextReadyNode(allowRetriggers = false): NodeRunner | undefined {
+    function choose(n1: NodeRunner, n2?: NodeRunner) {
+      if (n2 == undefined)
+        return n1;
 
-      if (node) {
-        return node;
-      }
+      if ((n1.node.view.x ?? 0) < (n2.node.view.x ?? 0)) 
+        return n1;
+
+      if ((n1.node.view.x ?? 0) > (n2.node.view.x ?? 0)) 
+        return n2;
+
+      return ((n1.node.view.y ?? 0) < (n2.node.view.y ?? 0)) ? n1 : n2;
     }
+
+    let ready: NodeRunner | undefined = undefined;
 
     for (const [_nodeID, node] of this.#nodes) {
-      if (node.context.canTrigger(this.#triggerID))
-        return node;
-    }
-
-    if (allowRetriggers) {
-      for (const [_nodeID, node] of this.#nodes) {
-        if (node.context.blockHelper.inputsChanged && node.context.canTrigger())
-          return node;
+      const hasIn = Array.from(node.node.ports.entries()).filter(([_portID, port]) => port.direction == "in");
+      if (hasIn.length == 0) {
+        if (node.context.canTrigger(this.#triggerID))
+          ready = choose(node, ready);
       }
     }
 
-    // nobody is ready
-    return undefined;
+    if (!ready) {
+      // tail-end already triggered nodes
+      for (let index = this.#triggeredNodes.length; index > 0; --index) {
+        const node = this.#findReadyLinkedNode(this.#triggeredNodes[index - 1]);
+
+        if (node) {
+          ready = choose(node, ready);
+        }
+      }
+    }
+
+    if (!ready) {
+      for (const [_nodeID, node] of this.#nodes) {
+        if (node.context.canTrigger(this.#triggerID))
+          ready = choose(node, ready);
+      }
+    }
+
+    if (!ready && allowRetriggers) {
+      for (const [_nodeID, node] of this.#nodes) {
+        if (node.context.blockHelper.inputsChanged && node.context.canTrigger())
+        ready = choose(node, ready);
+      }
+    }
+
+    return ready;
   }
 
   //triggerNode(node: BlockNode): Promise<BlockNode>;
-   triggerNode(node?: BlockNode): Promise<BlockNode> | null {
+  triggerNode(node?: NodeRunner): Promise<NodeRunner> | null {
     const selectedNode = node ?? this.nextReadyNode();
 
     if (selectedNode) {
       // will not execute again for same "triggerID"
       this.#triggeredNodes.push(selectedNode);
 
-      return selectedNode.context.trigger(this.#triggerID).then((output) => {
-        if (output instanceof Object) {
-          for (const [portID, _port] of selectedNode.node.ports) {
-            const cons = selectedNode.getOutputConnections(portID);
-
-            for (const con of cons) {
-              const targetNode = con.targetNode;
-
-              const values = { [con.link.portID]: output[portID as keyof PropertyValues<AnyInterface>] };
-
-              targetNode.context.blockHelper.inputs = values;
-            }
-          }
-        }
-
-        return selectedNode;
-      });
+      return selectedNode.trigger(this.#triggerID);
     }
 
     // no node

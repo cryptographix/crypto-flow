@@ -6,4 +6,5 @@ export * from './package/registry.test.ts';
 
 export * from './runtime/block.test.ts';
 export * from './runtime/block-context.test.ts';
-export * from './runtime/flow-runtime.test.ts';
+export * from './runtime/node-runner.test.ts';
+export * from './runtime/flow-runner.test.ts';

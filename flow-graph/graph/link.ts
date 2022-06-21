@@ -1,8 +1,10 @@
 import { JSONObject, JSONValue } from "../deps.ts";
 import { Port } from "../mod.ts";
 
+export type LinkType = "normal"|"log"|"break";
+
 export interface LinkInit {
-  type?: string;
+  type?: LinkType;
 
   nodeID: string;
 
@@ -10,7 +12,7 @@ export interface LinkInit {
 }
 
 export class Link {
-  type?: string;
+  type?: LinkType;
 
   portID: string;
 
@@ -25,21 +27,22 @@ export class Link {
   }
 
   static parseLink(port: Port, obj: JSONObject): Link {
-    const { portID, nodeID } = obj;
+    const { type, portID, nodeID } = obj;
 
     return new Link(port, {
+      type: JSONValue.isString(type) ? JSONValue.asString(type) as LinkType : undefined,
       nodeID: JSONValue.asString(nodeID)!,
       portID: JSONValue.asString(portID)!,
     });
   }
 
   toObject(): JSONObject {
-    const { portID, nodeID, type } = this;
+    const { type, nodeID, portID } = this;
 
-    return {
+    return JSONObject.clean({
       type: type ?? null,
       nodeID,
       portID,
-    };
+    });
   }
 }

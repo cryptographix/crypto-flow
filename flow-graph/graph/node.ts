@@ -18,10 +18,16 @@ export interface NodeViewInfo {
   // y-offset, relative to enclosing flow
   y?: number;
 
+  // width
   w?: number;
 
+  // height
   h?: number;
 
+  // rotation, 0/90/180/-90/270
+  r?: number;
+
+  //
   color?: string;
 }
 
@@ -73,7 +79,11 @@ export class Node {
   }
 
   static parseViewInfo(value: JSONValue): NodeViewInfo {
-    return JSONValue.asObject<NodeViewInfo>(value, {});
+    const view = JSONValue.asObject<NodeViewInfo>(value, {});
+
+    view.x = Math.round(view.x ?? 0);
+    view.y = Math.round(view.y ?? 0);
+    return view;
   }
 
   static parseBlockInfo(value: JSONValue): NodeBlockInfo {

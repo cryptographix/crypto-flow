@@ -30,18 +30,18 @@ export default {
                 dataType: "boolean",
                 links: [
                   {
-                    nodeID: "node-2",
+                    nodeID: "printer",
                     portID: "data"
                   }
                 ]
               },
             },
           },
-          "node-2": {
+          "printer": {
             type: "block",
             name: "out",
             block: {
-              name: "printer"
+              name: "test.blocks.printer"
             },
             ports: {
               "data": {

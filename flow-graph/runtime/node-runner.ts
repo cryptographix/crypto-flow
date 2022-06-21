@@ -18,7 +18,7 @@ export class NodeRunner<IF = AnyObject, BLK extends Block<IF> = AbstractBlock<IF
   #outputConnections = new Map<string, Connection[]>();
   #loading: Promise<void> | null;
 
-  constructor(public readonly id: string, public node: Node) {
+  constructor(public readonly nodeID: string, public node: Node) {
     this.#loading = BlockContext.fromNode<BLK>(node)
       .then((bc) => {
         // check if loading still required, since node may have been finalized
@@ -49,7 +49,7 @@ export class NodeRunner<IF = AnyObject, BLK extends Block<IF> = AbstractBlock<IF
     return this.#blockContext!;
   }
 
-  getOutputConnections(portID: string): Connection[] {
+  getOutputConnectionsForPort(portID: string): Connection[] {
     return this.#outputConnections.get(portID) ?? [];
   }
 
@@ -68,7 +68,7 @@ export class NodeRunner<IF = AnyObject, BLK extends Block<IF> = AbstractBlock<IF
 
     if (output instanceof Object) {
       for (const [portID, _port] of this.node.ports) {
-        const cons = this.getOutputConnections(portID);
+        const cons = this.getOutputConnectionsForPort(portID);
 
         for (const con of cons) {
           const targetNode = con.targetNode;

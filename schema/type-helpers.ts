@@ -166,7 +166,7 @@ export const JSONObject = {
     for (const propName in obj) {
       const prop = obj[propName];
 
-      if ((prop === undefined)
+      if ((prop === undefined) || (prop == null)
         || (typeof prop == "object" && Object.keys(prop as JSONObject).length == 0)
         || (Array.isArray(prop) && prop.length == 0)
         || (typeof prop == "string" && prop.length == 0)) {

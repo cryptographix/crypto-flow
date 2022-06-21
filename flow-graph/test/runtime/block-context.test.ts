@@ -1,7 +1,8 @@
-import { packageDefinition } from './../data/test-package-1.ts';
-import impProject from "../data/flow1.js";
 import { BlockContext, Node, registry } from "../deps.ts";
 import { test, assertEquals } from "../test-harness.ts";
+
+import { packageDefinition } from './../data/test-package-1.ts';
+import impProject from "../data/flow1.js";
 
 const _pack = registry.registerPackage(packageDefinition);
 

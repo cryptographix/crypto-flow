@@ -59,22 +59,32 @@ export class BlockFactory<BLK extends AnyBlock> {
     Object.defineProperties(block, {
       '$helper': {
         enumerable: false,
-        configurable: false,
+        configurable: true,
         value: blockHelper,
         writable: false,
       }
     });
 
     if (!block.setup) {
-      const func = (config: PartialBlockPropertiesOf<BLK>) => { return blockHelper.setup(config!); };
+      const setup = (config: PartialBlockPropertiesOf<BLK>) => {
+        return blockHelper.setup(config!);
+      };
 
-      block.setup = func;
+      block.setup = setup;
     }
 
     if (!block.teardown) {
-      const func = () => { blockHelper.teardown(); };
+      const teardown = () => {
+        blockHelper.teardown();
 
-      block.teardown = func;
+        Object.defineProperties(block, {
+          '$helper': {
+            value: undefined,
+          }
+        });
+      };
+
+      block.teardown = teardown;
     }
 
     return block as unknown as BlockInstance<BLK>;
@@ -283,8 +293,14 @@ export class BlockHelperImpl<BLK extends AnyBlock> implements BlockHelper<BLK>
   }
 
   teardown(): void {
+    const block = this.block as unknown as HasBlockHelper<BLK>;
+
     // cleanup
-    (this.block as { $helper?: AnyInterface }).$helper = undefined;
+    Object.defineProperties(block, {
+      '$helper': {
+        value: undefined,
+      }
+    });
   }
 }
 

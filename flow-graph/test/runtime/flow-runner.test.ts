@@ -6,7 +6,7 @@ import impProject from "../data/project-1.json" assert { type: "json"};
 test("Runner: Trigger sequence", async () => {
   const project = Project.parseProject(Deno.cwd(), impProject);
 
-  const runner = new FlowRunner(project.getRootFlow(true)!);
+  const runner = new FlowRunner("root", project.getRootFlow(true)!);
 
   registry.registerPackage((await import("../data/test-package-1.ts")).packageDefinition);
 
@@ -37,7 +37,7 @@ test("Runner: Trigger sequence", async () => {
 
         if (block) {
           //console.log("triggering ...", block.node.id);
-          trace.push(block.id)
+          trace.push(block.nodeID)
 
           block = await runner.triggerNode(block);
         }
