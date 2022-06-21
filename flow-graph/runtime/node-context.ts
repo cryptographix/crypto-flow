@@ -13,7 +13,7 @@ import { AbstractBlock } from "./abstract-block.ts";
  * 
  * 
  */
-export class NodeRunner<IF = AnyObject, BLK extends Block<IF> = AbstractBlock<IF>&IF> {
+export class NodeContext<IF = AnyObject, BLK extends Block<IF> = AbstractBlock<IF>&IF> {
   #blockContext?: BlockContext<BLK>;
   #outputConnections = new Map<string, Connection[]>();
   #loading: Promise<void> | null;
@@ -88,7 +88,7 @@ export class Connection {
   constructor(
     public port: PortInit,
     public link: LinkInit,
-    public targetNode: NodeRunner
+    public targetNode: NodeContext
   ) {
     // ...
   }

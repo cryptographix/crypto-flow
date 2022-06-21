@@ -1,173 +1,269 @@
-import { Connection } from "../mod.ts";
-import { Graph } from "../mod.ts";
-import { NodeRunner } from "./node-runner.ts";
+import { FlowLogger } from './flow-tracer.ts';
+import { NodeContext, FlowContext, Graph, Project, Connection } from '../mod.ts';
 
-export class FlowRunner extends NodeRunner {
-  #triggerID = 0;
+export type RunMode = "continuous" | "single" | "step";
 
-  #nodes = new Map<string, NodeRunner>();
+/**
+ * State Transitions
+ * 
+ * none          : new      --> initialized  |  error
+ *  
+ * initialized   : setup    --> error
+ *                            > loading ==>  waiting | ready
+ * 
+ * waiting       : isReady? --> ready
+ * 
+ * ready         : !isStepMode --> running
+ *               : STEP        --> stepping
+ * 
+ * stepping      : done        --> waiting | ready
+ * 
+ * running       : !isReady    --> waiting
+ *               : PAUSE       --> paused
+ * 
+ * paused        : RESUME      --> running | waiting
+ */
+export type FlowState = "none" | "initialized" | "error" | "loading" | "waiting" | "ready" | "running" | "paused" | "stepping";
 
-  #buildNetwork(flow: Graph) {
-    // reset
-    this.#resetNetwork();
+export type FlowObserver = {
+  onFlowStateChange(flowState: FlowState): void;
 
-    // create a BlockNode for each Node
-    for (const [nodeID, node] of flow.nodes.entries()) {
-      const blockNode = new NodeRunner(nodeID, node);
+  onFlowNodeActive(flowState: FlowState, node?: NodeContext): void;
 
-      this.#nodes.set(nodeID, blockNode);
+  onFlowPortActive(node?: NodeContext, portID?: string, connection?: Connection): void;
+}
+
+export class FlowRunner {
+  //
+  #runMode!: RunMode;
+
+  //
+  #flowState: FlowState = "none";
+
+  //
+  #flowContext: FlowContext;
+
+  //
+  #nextReady?: NodeContext;
+
+  // 
+  #executingNode: Promise<NodeContext> | null = null;
+  #stepTimer?: number;
+
+  #executeNextNode() {
+    const nextNode = this.#nextReady;
+
+    if (!nextNode) {
+      this.#setFlowState("waiting");
+
+      console.log("No one ready")
+
+      return null;
     }
 
-    // Wire up links
-    for (const [key, blockNode] of this.#nodes.entries()) {
-      for (const [portID, port] of blockNode.node.ports.entries()) {
-        for (const link of port.links) {
-          const targetNode = this.#nodes.get(link.nodeID);
+    // execute once ..
+    this.#nextReady = undefined;
 
-          if (targetNode) {
-            const con: Connection = new Connection(port, link, targetNode);
+    console.log("Exec", nextNode.node.name ?? nextNode.nodeID);
 
-            blockNode.addOutputConnection(portID, con);
-          }
-        }
-      }
+    const nextState = (this.isStepMode || this.isPaused) ? "stepping" : "running";
 
-      this.#nodes.set(key, blockNode);
-    }
-  }
+    this.#setFlowState(nextState);
 
-  #resetNetwork() {
-    for (const [_id, blockNode] of this.#nodes) {
-      blockNode.finalize();
-    }
+    this.flowObserver?.onFlowNodeActive(nextState, nextNode);
+    this.flowObserver?.onFlowPortActive(nextNode);
 
-    this.#nodes.clear();
-  }
+    this.#executingNode = this.#flowContext.triggerNode(nextNode)!.then((node) => {
 
-  #findReadyLinkedNode(sourceNode: NodeRunner): NodeRunner | null {
-    for (const [portID, _port] of sourceNode.node.ports) {
-      const cons = sourceNode.getOutputConnectionsForPort(portID);
+      this.#executingNode = null;
 
-      for (const con of cons) {
-        const targetNode = con.targetNode;
-
-        if (!this.hasTriggered(targetNode)) {
-          if (targetNode.context.canTrigger(this.#triggerID)) {
-            return targetNode;
-          }
-        }
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * 
-   */
-  constructor(public flowID: string, public readonly flow: Graph) {
-    super(flowID, flow);
-  }
-
-  get nodes() { return this.#nodes; }
-  get triggerID() { return this.#triggerID }
-
-  setupNetwork() {
-    this.#buildNetwork(this.flow);
-
-    this.#triggeredNodes = [];
-
-    const nodes = Array.from(this.#nodes.values());
-
-    return Promise.all(nodes.map((bn) => {
-      return bn.load()
-        .catch(e => {
-          console.log("error loading block", e, bn.nodeID, bn.node.block)
+      for (const [portID, _port] of node.node.ports) {
+        node.getOutputConnectionsForPort(portID).forEach(con => {
+          this.flowObserver?.onFlowPortActive(node, portID, con);
         });
+      }
+
+      return new Promise((resolve, _reject) => {
+        setTimeout(() => {
+          // look for next ready mode
+          this.isReady();
+
+          resolve(node);
+        }, 350);
+      });
+    });
+
+    return this.#executingNode;
+  }
+
+  async #stepFlowAndRepeat() {
+    // any node ready to execute?
+    if (this.isReady()) {
+      // run the node ...
+      const executingNode = this.#executeNextNode();
+
+      // wait for node to execute ...
+      await executingNode;
+
+      // can we repeat?  aborted? (pause/stop buttons)
+      if (this.#flowState == "running") {
+
+        // set timer to execute next step
+        this.#stepTimer = setTimeout(() => {
+          this.#stepTimer = undefined;
+
+          if (this.#flowState == "running")
+            this.#stepFlowAndRepeat();
+        }, 350)
+      }
     }
-    ));
-  }
-
-  teardownNetwork() {
-    this.#resetNetwork();
-  }
-
-  nextTriggerID(): number {
-    this.#triggerID++;
-    this.#triggeredNodes = [];
-
-    return this.#triggerID;
-  }
-
-  #triggeredNodes: NodeRunner[] = [];
-  hasTriggered(node: NodeRunner) {
-    return this.#triggeredNodes.includes(node);
-  }
-
-  nextReadyNode(allowRetriggers = false): NodeRunner | undefined {
-    function choose(n1: NodeRunner, n2?: NodeRunner) {
-      if (n2 == undefined)
-        return n1;
-
-      if ((n1.node.view.x ?? 0) < (n2.node.view.x ?? 0)) 
-        return n1;
-
-      if ((n1.node.view.x ?? 0) > (n2.node.view.x ?? 0)) 
-        return n2;
-
-      return ((n1.node.view.y ?? 0) < (n2.node.view.y ?? 0)) ? n1 : n2;
+    else {
+      // No more ready nodes
+      this.#setFlowState("waiting");
     }
+  }
 
-    let ready: NodeRunner | undefined = undefined;
+  #setFlowState(newState: FlowState, node?: NodeContext) {
+    if (this.#flowState != newState || node) {
+      this.#flowState = newState;
 
-    for (const [_nodeID, node] of this.#nodes) {
-      const hasIn = Array.from(node.node.ports.entries()).filter(([_portID, port]) => port.direction == "in");
-      if (hasIn.length == 0) {
-        if (node.context.canTrigger(this.#triggerID))
-          ready = choose(node, ready);
+      //console.log("FlowState <=", newState)
+      this.flowObserver?.onFlowStateChange(newState);
+    }
+  }
+
+  constructor(public readonly flowObserver?: FlowObserver) {
+    this.#flowContext = new FlowContext("root", new Graph());
+
+    this.#setFlowState("initialized");
+  }
+
+  get runner() { return this.#flowContext; }
+
+  async setupFlowRunner(mode: RunMode, flowID: string, flow: Graph) {
+    this.#runMode = mode;
+
+    this.#flowContext = new FlowContext(flowID, flow);
+
+    await this.resetFlowRunner();
+  }
+
+
+  async resetFlowRunner() {
+    this.#nextReady = undefined;
+
+    this.pauseFlow(true);
+
+    if (this.#flowState == "initialized")
+      this.#setFlowState("loading");
+
+    this.flowObserver?.onFlowNodeActive(this.#flowState);
+    this.flowObserver?.onFlowPortActive();
+
+    try {
+      await this.#flowContext.setupNetwork();
+
+      if (this.#flowState !== "paused")
+        this.isReady();
+    }
+    catch (e) {
+      console.log("Error setting up network", e)
+
+      this.#setFlowState("error");
+    }
+  }
+
+  get isBusy() { return this.#executingNode !== null; }
+  get isPaused() { return this.#flowState == "paused" || this.#flowState == "stepping" }
+  get isRunning() { return this.#flowState == "running"; }
+
+  get isContinuousMode() { return this.#runMode === "continuous"; }
+  get isSingleMode() { return this.#runMode === "single"; }
+  get isStepMode() { return this.#runMode === "step"; }
+
+  teardownFlowRunner() {
+    this.pauseFlow();
+
+    if (this.#flowContext) {
+      this.#flowContext.teardownNetwork();
+
+      this.#flowContext = new FlowContext("", new Graph(undefined, Project.emptyFlow));
+    }
+  }
+
+  triggerFlow() {
+    const triggerID = this.#flowContext.nextTriggerID();
+    console.log("Trigger", triggerID);
+
+    if ((this.#flowState != "paused") && this.isReady()) {
+      if (!this.isStepMode) {
+        this.runFlow();
+      }
+    }
+  }
+
+  isReady() {
+    if (this.#nextReady === undefined) {
+      const nextReady = this.#nextReady = this.#flowContext.nextReadyNode(this.isContinuousMode);
+
+      const nextState: FlowState = this.isStepMode ? "ready" : (this.isPaused) ? "paused" : "running";
+
+      if (nextReady) {
+        this.flowObserver?.onFlowNodeActive(nextState, nextReady);
+        this.flowObserver?.onFlowPortActive(nextReady);
+
+        this.#setFlowState(nextState);
       }
     }
 
-    if (!ready) {
-      // tail-end already triggered nodes
-      for (let index = this.#triggeredNodes.length; index > 0; --index) {
-        const node = this.#findReadyLinkedNode(this.#triggeredNodes[index - 1]);
+    const isReady = this.#nextReady !== undefined;
+    if (!isReady) {
+      this.#setFlowState("waiting");
 
-        if (node) {
-          ready = choose(node, ready);
-        }
-      }
+      this.flowObserver?.onFlowNodeActive("waiting");
+      this.flowObserver?.onFlowPortActive();
     }
 
-    if (!ready) {
-      for (const [_nodeID, node] of this.#nodes) {
-        if (node.context.canTrigger(this.#triggerID))
-          ready = choose(node, ready);
-      }
-    }
-
-    if (!ready && allowRetriggers) {
-      for (const [_nodeID, node] of this.#nodes) {
-        if (node.context.blockHelper.inputsChanged && node.context.canTrigger())
-        ready = choose(node, ready);
-      }
-    }
-
-    return ready;
+    return isReady;
   }
 
-  //triggerNode(node: BlockNode): Promise<BlockNode>;
-  triggerNode(node?: NodeRunner): Promise<NodeRunner> | null {
-    const selectedNode = node ?? this.nextReadyNode();
+  stepFlow(): Promise<NodeContext> | null {
+    if (!this.#nextReady) {
+      this.#setFlowState("waiting");
 
-    if (selectedNode) {
-      // will not execute again for same "triggerID"
-      this.#triggeredNodes.push(selectedNode);
+      console.log("No one ready")
 
-      return selectedNode.trigger(this.#triggerID);
+      return null;
     }
 
-    // no node
-    return null;
+    return this.#executeNextNode();
+  }
+
+  runFlow() {
+    if (!this.isStepMode) {
+      this.#setFlowState("running");
+
+      return this.#stepFlowAndRepeat();
+    }
+    else {
+      console.log("Should never happen");
+
+      this.stepFlow();
+    }
+  }
+
+  async pauseFlow(stop = false) {
+    if (this.#stepTimer) {
+      clearTimeout(this.#stepTimer);
+      this.#stepTimer = undefined;
+    }
+
+    await this.#executingNode;
+
+    this.#executingNode = null;
+
+    if (!this.isStepMode && !stop) {
+      this.#setFlowState("paused");
+    }
   }
 }

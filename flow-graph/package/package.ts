@@ -1,6 +1,6 @@
 import { JSONObject, JSONValue, AnyInterface, InterfaceDefinition, Schema } from "../deps.ts";
 import { BlockFactory } from "../mod.ts";
-import { AnyBlock, Block, BlockConstructor, BlockDefinition, BlockPropertyDefinition, BlockPropertyDefinitions, BlockType, PropertyKind, PropertyFlowDirection } from "./block.ts";
+import { AnyBlock, Block, BlockConstructor, BlockDefinition, BlockPropertyDefinition, BlockPropertyDefinitions, BlockType, PropertyKind, PropertyFlowDirection, BlockPropertiesOf } from "./block.ts";
 
 /**
  * A Package is a collection of data-types, interfaces and block-factories.
@@ -265,14 +265,14 @@ export class Package {
     });
   }
 
-  static #blockDefinitionToObject<BLK>(blockDefinition: BlockDefinition): JSONObject {
+  static #blockDefinitionToObject<BLK extends AnyBlock>(blockDefinition: BlockDefinition<BLK>): JSONObject {
     const { type, description, category } = blockDefinition;
 
-    const properties = Object.entries(blockDefinition.propertyDefinitions).reduce((properties, [propertyID, _propertyDefinition]) => {
-      properties[propertyID] = Package.#propertyDefinitionToObject(propertyID, blockDefinition);
+    const properties = {} as JSONObject;
 
-      return properties;
-    }, {} as JSONObject);
+    for( const [propertyID, propertyDefinition] of Object.entries(blockDefinition.propertyDefinitions)) {
+      properties[propertyID] = Package.#propertyDefinitionToObject(propertyDefinition as BlockPropertyDefinition<BLK>);
+    }
 
     return JSONObject.clean({
       type,
@@ -282,9 +282,13 @@ export class Package {
     });
   }
 
-  static #propertyDefinitionToObject<BLK>(id: string, blockDefinition: BlockDefinition): JSONObject {
-    return blockDefinition.propertyDefinitions[id as keyof BlockPropertyDefinitions<BLK>] as unknown as JSONObject;
+  // static #propertyDefinitionToObject<BLK extends AnyBlock>(id: keyof BlockPropertiesOf<BLK>, propertyDefinitions: BlockPropertiesOf<BLK>): JSONObject {
+  //   return propertyDefinitions[id as keyof BlockPropertiesOf<BLK>] as unknown as JSONObject;
+  // }
+  static #propertyDefinitionToObject<BLK extends AnyBlock>(propertyDefinition: BlockPropertyDefinition<BLK>): JSONObject {
+    return propertyDefinition as unknown as JSONObject;
   }
+  
 
   static extendNamespace(namespace: string, packID: string) {
     return (namespace != "")

@@ -11,8 +11,8 @@ export * from "./package/package-registry.ts"
 export * from "./runtime/abstract-block.ts";
 export * from "./runtime/block-factory.ts";
 export * from "./runtime/block-context.ts"
-export * from "./runtime/node-runner.ts";
-export * from "./runtime/flow-runner.ts";
+export * from "./runtime/node-context.ts";
+export * from "./runtime/flow-context.ts";
 
 export * from "./project/project.ts";
 export * from "./project/project-validator.ts";
