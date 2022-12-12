@@ -15,7 +15,7 @@ export interface IFBlockCipher {
 export const IFBlockCipher: BlockInterfaceDefinition<IFBlockCipher> = {
   name: "IFBlockCipher",
 
-  propertyDefinitions: {
+  properties: {
     direction: {
       kind: "config",
       dataType: "enum",

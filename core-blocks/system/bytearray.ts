@@ -1,11 +1,9 @@
-import { Block, BlockDefinition, BlockHelper } from "../deps.ts";
+import { Block, BlockDefinition } from "../deps.ts";
 
 class ByteArrayBlock
   implements Block<{output: Uint8Array}> {
-  //
-  $helper!: BlockHelper<ByteArrayBlock>;
-
   value: Uint8Array = new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]); 
+
   bytes!: Uint8Array;
 
   run(): void {
@@ -13,14 +11,14 @@ class ByteArrayBlock
   }
 }
 
-export const ByteArray: BlockDefinition<ByteArrayBlock> = {
+export default {
   type: "block",
   ctor: ByteArrayBlock,
   name: "ByteArray",
   description: "Constant byte array",
-  category: "core-ops",
+  category: "system",
 
-  propertyDefinitions: {
+  properties: {
     value: {
       dataType: "u8[]",
       accessors: "set",
@@ -32,4 +30,4 @@ export const ByteArray: BlockDefinition<ByteArrayBlock> = {
       direction: "out"
     },
   },
-};
+} as BlockDefinition<ByteArrayBlock>;

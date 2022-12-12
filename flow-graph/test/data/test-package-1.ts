@@ -12,7 +12,7 @@ export const packageDefinition: PackageDefinition = {
       type: "code",
       name: "printer",
       category: "outputs",
-      propertyDefinitions: {
+      properties: {
         data: { dataType: "string", accessors: "set" },
       },
       ctor: class extends AbstractBlock<IF1> {
@@ -28,7 +28,7 @@ export const packageDefinition: PackageDefinition = {
       type: "block",
       name: "printer2",
       category: "outputs",
-      propertyDefinitions: {
+      properties: {
         data: { dataType: "string", accessors: "set" },
       },
 

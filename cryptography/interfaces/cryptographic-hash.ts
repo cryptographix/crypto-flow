@@ -11,7 +11,7 @@ export interface IFCryptographicHash {
 export const IFCryptographicHash: BlockInterfaceDefinition<IFCryptographicHash> = {
   name: "IFCryptographicHash",
 
-  propertyDefinitions: {
+  properties: {
     dataIn: { direction: "in", dataType: "u8[]" },
 
     hashSizeBits: { direction: "out", dataType: "integer" },

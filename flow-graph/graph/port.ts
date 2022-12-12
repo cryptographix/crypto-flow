@@ -1,8 +1,8 @@
 import { JSONObject, JSONValue } from "../deps.ts";
 import { BlockPropertyDefinition, PropertyFlowDirection, PropertyKind, Node } from "../mod.ts";
-import { Link, LinkInit } from "./link.ts";
+import { Link } from "./link.ts";
 
-export interface PortInit<T = unknown> {
+/*export interface PortInit<T = unknown> {
   // "Kind" of Port - event/data/api/protocol
   kind: PropertyKind;
 
@@ -22,10 +22,10 @@ export interface PortInit<T = unknown> {
   data?: T;
 
   // only direction="out"/"in-out"
-  links: Array<LinkInit>;
-}
+  links: Array<Link>;
+}*/
 
-export class Port<T = unknown> {
+export interface Port<T = unknown> {
   kind: PropertyKind;
 
   direction: PropertyFlowDirection;
@@ -34,13 +34,88 @@ export class Port<T = unknown> {
 
   dataType: string;
 
-  optional = false;
+  optional?: boolean;
 
   data?: T;
 
   links: Array<Link>;
+};
 
-  constructor(public node: Node, port: PortInit<T>) {
+export const Port = {
+  parsePort(obj: JSONObject): Port {
+    const { kind, direction, name, dataType, optional, data } = obj;
+
+    const port: Port = {
+      kind: JSONValue.asString(kind) as PropertyKind,
+      direction: JSONValue.asString(direction) as PropertyFlowDirection,
+      name: JSONValue.asString(name),
+      dataType: JSONValue.asString(dataType, "")!,
+      optional: JSONValue.asBoolean(optional),
+      data,
+      links: [],
+    };
+
+    // only "out" ports have links
+    if (Port.isOutput(port)) {
+      Array.from((obj.links as JSONObject[]) ?? []).reduce<Array<Link>>(
+        (links, item: JSONObject) => {
+          links.push(Link.parseLink(item));
+
+          return links;
+        },
+        port.links
+      );
+    }
+
+    return port;
+  },
+
+  isOutput(port: Port) {
+    return port.direction == "out" || port.direction == "in-out";
+  },
+
+  accessorToDirection(accessors: BlockPropertyDefinition["accessors"]): PropertyFlowDirection {
+    switch (accessors) {
+      case "get": return "out";
+      case "set": return "in";
+      case "both": return "in-out";
+      default: return "none";
+    }
+  },
+
+  fromPropertyDefinition(propertyDefinition: BlockPropertyDefinition): Port {
+    return {
+      kind: propertyDefinition.kind ?? "data",
+      direction: propertyDefinition.direction ?? Port.accessorToDirection(propertyDefinition.accessors),
+      name: propertyDefinition.title,
+      dataType: propertyDefinition.dataType,
+      data: propertyDefinition.default,
+      links: [],
+    };
+  },
+
+  toObject(port: Port): JSONObject {
+    const { kind, direction, name, dataType, optional, data, links } = port;
+
+    const linksObj = Array.from(links).reduce((links, link) => {
+      links.push(Link.toObject(link));
+
+      return links;
+    }, [] as JSONObject[]);
+
+    return JSONObject.clean({
+      kind,
+      direction,
+      name,
+      dataType,
+      optional,
+      data: data as unknown as JSONValue, // TODO: structured types
+      links: (direction == "out" || direction == "in-out") && links.length > 0 ? linksObj : undefined,
+    });
+  }
+
+}
+/*  constructor(port: PortInit<T>) {
     const { kind, direction, name, dataType, data, links = [] } = port;
 
     this.kind = kind;
@@ -50,7 +125,7 @@ export class Port<T = unknown> {
     this.data = data;
 
     this.links = links.map((link) => {
-      return new Link(this, link);
+      return new Link(link);
     });
   }
 
@@ -58,10 +133,10 @@ export class Port<T = unknown> {
     return this.direction == "out" || this.direction == "in-out";
   }
 
-  static parsePort(node: Node, obj: JSONObject): Port {
+  static parsePort(obj: JSONObject): Port {
     const { kind, direction, name, dataType, optional, data } = obj;
 
-    const port = new Port(node, {
+    const port = new Port( {
       kind: JSONValue.asString(kind) as PropertyKind,
       direction: JSONValue.asString(direction) as PropertyFlowDirection,
       name: JSONValue.asString(name),
@@ -73,9 +148,9 @@ export class Port<T = unknown> {
 
     // only "out" ports have links
     if (port.isOutput) {
-      Array.from((obj.links as JSONObject[]) ?? []).reduce<Array<LinkInit>>(
+      Array.from((obj.links as JSONObject[]) ?? []).reduce<Array<Link>>(
         (links, item: JSONObject) => {
-          links.push(Link.parseLink(port, item));
+          links.push(Link.parseLink(item));
 
           return links;
         },
@@ -95,10 +170,10 @@ export class Port<T = unknown> {
     }
   }
 
-  static fromPropertyDefinition(node: Node, propertyDefinition: BlockPropertyDefinition): Port {
-    return new Port(node, {
+  static fromPropertyDefinition(propertyDefinition: BlockPropertyDefinition): Port {
+    return new Port({
       kind: propertyDefinition.kind ?? "data",
-      direction: Port.accessorToDirection(propertyDefinition.accessors),
+      direction: propertyDefinition.direction ?? Port.accessorToDirection(propertyDefinition.accessors),
       name: propertyDefinition.title,
       dataType: propertyDefinition.dataType,
       data: propertyDefinition.default,
@@ -125,4 +200,4 @@ export class Port<T = unknown> {
       links: (direction == "out" || direction == "in-out") && links.length > 0 ? links : undefined,
     });
   }
-}
+}*/

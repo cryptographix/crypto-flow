@@ -1,4 +1,4 @@
-import { NodeContext, Graph, registry, Connection, AnyObject } from "../deps.ts";
+import { NodeContext, Flow, registry, Connection, AnyObject } from "../deps.ts";
 import { test, assertEquals } from "../test-harness.ts";
 
 import { packageDefinition } from './../data/test-package-1.ts';
@@ -6,7 +6,7 @@ import impProject from "../data/flow1.js";
 
 const _pack = registry.registerPackage(packageDefinition);
 
-const flow = Graph.parseGraph(undefined, impProject.project.flows["invert-bit"]);
+const flow = Flow.parseGraph(impProject.project.flows["invert-bit"]);
 const invertorNode = new NodeContext<{ input: boolean; out?: boolean; }>("",flow.nodes.get("inverter")!);
 const loggerNode = new NodeContext<{ data?: boolean; }>("",flow.nodes.get("printer")!);
 

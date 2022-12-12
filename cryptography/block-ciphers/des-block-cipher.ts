@@ -1159,17 +1159,17 @@ export const DESBlockCipher: BlockDefinition<DESBlockCipherBlock> = {
   name: "DES Block Cipher",
   category: "crypto",
 
-  propertyDefinitions: {
-    ...IFBlockCipher.propertyDefinitions,
+  properties: {
+    ...IFBlockCipher.properties,
     key: {
-      ...IFBlockCipher.propertyDefinitions.key,
+      ...IFBlockCipher.properties.key,
       dataType: "u8[]",
       minLength: 8,
       maxLength: 24,
       lengthStep: 8,
     },
     blockSize: {
-      ...IFBlockCipher.propertyDefinitions.blockSize,
+      ...IFBlockCipher.properties.blockSize,
       default: 64,
       constant: true,
     },

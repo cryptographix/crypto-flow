@@ -1,13 +1,15 @@
-import { Block, BlockDefinition, BlockHelper } from "../deps.ts";
+import { Block, BlockDefinition } from "../deps.ts";
 import { IFByteArrayBinaryOperator } from "./binary-operator-interface.ts";
 
 class XORBlock
   implements Block<IFByteArrayBinaryOperator>, IFByteArrayBinaryOperator {
   //
-  $helper!: BlockHelper<XORBlock>;
-
   op1!: Uint8Array;
+
+  //
   op2!: Uint8Array;
+
+  //
   result!: Uint8Array;
 
   run(): void {
@@ -23,13 +25,13 @@ class XORBlock
   }
 }
 
-export const XORBytes: BlockDefinition<XORBlock> = {
+export default {
   type: "block",
   ctor: XORBlock,
   name: "XOR Bytes",
   category: "core-ops",
 
-  propertyDefinitions: {
+  properties: {
     op1: {
       dataType: "u8[]",
       accessors: "set"
@@ -43,4 +45,4 @@ export const XORBytes: BlockDefinition<XORBlock> = {
       accessors: "get"
     },
   },
-};
+} as BlockDefinition<XORBlock>;

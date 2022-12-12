@@ -3,7 +3,7 @@ import { Port } from "../mod.ts";
 
 export type LinkType = "normal"|"log"|"break";
 
-export interface LinkInit {
+export interface Link {
   type?: LinkType;
 
   nodeID: string;
@@ -11,14 +11,36 @@ export interface LinkInit {
   portID: string;
 }
 
-export class Link {
+export const Link = {
+  parseLink(obj: JSONObject): Link {
+    const { type, portID, nodeID } = obj;
+
+    return {
+      type: JSONValue.isString(type) ? JSONValue.asString(type) as LinkType : undefined,
+      nodeID: JSONValue.asString(nodeID)!,
+      portID: JSONValue.asString(portID)!,
+    };
+  },
+
+  toObject(link: Link): JSONObject {
+    const { type, nodeID, portID } = link;
+
+    return JSONObject.clean({
+      type: type ?? null,
+      nodeID,
+      portID,
+    });
+  }
+
+}
+/*export class Link {
   type?: LinkType;
 
   portID: string;
 
   nodeID: string;
 
-  constructor(public port: Port, link: LinkInit) {
+  constructor(link: Link) {
     const { type, portID, nodeID } = link;
 
     this.type = type;
@@ -26,10 +48,10 @@ export class Link {
     this.nodeID = nodeID;
   }
 
-  static parseLink(port: Port, obj: JSONObject): Link {
+  static parseLink(obj: JSONObject): Link {
     const { type, portID, nodeID } = obj;
 
-    return new Link(port, {
+    return new Link({
       type: JSONValue.isString(type) ? JSONValue.asString(type) as LinkType : undefined,
       nodeID: JSONValue.asString(nodeID)!,
       portID: JSONValue.asString(portID)!,
@@ -45,4 +67,4 @@ export class Link {
       portID,
     });
   }
-}
+}*/

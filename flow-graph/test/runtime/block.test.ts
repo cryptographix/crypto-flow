@@ -17,7 +17,7 @@ interface IFBlockCipher {
 const IFBlockCipher: InterfaceDefinition<IFBlockCipher> = {
   name: "IFBlockCipher",
 
-  propertyDefinitions: {
+  properties: {
     // config
     direction: {
       accessors: "both",
@@ -74,16 +74,16 @@ const XORBlockCipher: BlockDefinition<XORBlockCipherBlock> = {
 
   ctor: XORBlockCipherBlock,
  
-  propertyDefinitions: {
-    ...IFBlockCipher.propertyDefinitions,
+  properties: {
+    ...IFBlockCipher.properties,
     key: {
-      ...IFBlockCipher.propertyDefinitions.key,
+      ...IFBlockCipher.properties.key,
       dataType: "u8[]",
       minLength: 8,
       maxLength: 8,
     },
     blockSize: {
-      ...IFBlockCipher.propertyDefinitions.blockSize,
+      ...IFBlockCipher.properties.blockSize,
       constant: true,
       default: 64,
     },
@@ -95,11 +95,11 @@ import { test, assertEquals, assertNotEquals } from "../test-harness.ts";
 test({
   name: "Block: Definition correctly extends registered interface",
   fn: () => {
-    const propInfo = XORBlockCipher.propertyDefinitions;
+    const propInfo = XORBlockCipher.properties;
 
     assertEquals(Object.keys(propInfo).length, 5);
-    assertEquals(propInfo.plainText, IFBlockCipher.propertyDefinitions.plainText);
-    assertNotEquals(propInfo.blockSize, IFBlockCipher.propertyDefinitions.blockSize);
+    assertEquals(propInfo.plainText, IFBlockCipher.properties.plainText);
+    assertNotEquals(propInfo.blockSize, IFBlockCipher.properties.blockSize);
   },
 });
 

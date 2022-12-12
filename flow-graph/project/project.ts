@@ -1,11 +1,158 @@
 import { JSONObject } from "../deps.ts";
-import { Graph, GraphInit, ImportDefinition } from "../mod.ts";
+import { Flow, ImportDefinition } from "../mod.ts";
+
+type ProjectType = "project" | "template" | "library";
+
+/**
+ * Base Project
+ */
+interface ProjectInfo {
+  //
+  type: ProjectType;
+
+  //
+  id: string;
+
+  name: string;
+
+  // 
+  created?: Date;
+
+  // 
+  updated?: Date;
+
+  //
+  visibility?: "private" | "public";
+
+  // state
+  state?: "draft" | "normal";
+}
+
+/**
+ * Full Project
+ */
+export interface FlowProject extends ProjectInfo {
+
+  flows: Map<string, Flow>;
+
+  imports: Map<string, ImportDefinition>;
+}
+
+export const FlowProject = {
+  newFlowProject() {
+    return {
+      ...FlowProject.emptyProject,
+      flows: {
+        ...Flow.emptyFlow,
+        type: "root"
+      }
+    }
+  },
+
+  getRootFlow(
+    project: FlowProject
+  ): Flow {
+    const flow = Array.from(project.flows.values()).find((flow) => flow.type == "root");
+
+    if (!flow) {
+      throw new Error("No root flow");
+    }
+
+    return flow;
+  },
+
+  createFlow(project: FlowProject, type: "root" | "flow", id: string, name: string): Flow {
+    if (type == "root" && FlowProject.getRootFlow(project)) {
+      throw new Error("");
+    }
+
+    const flow = {
+      ...Flow.emptyFlow,
+      type,
+      name,
+      nodes: new Map(),
+      ports: new Map(),
+    };
+
+    project.flows.set(id, flow);
+
+    return flow;
+  },
+
+  parseProject(baseURL: string, obj: JSONObject): FlowProject {
+    if (typeof obj["project"] == "object") {
+      obj = obj["project"] as JSONObject;
+    }
+
+    const { type = "project", name = "", projectID, flows, imports } = obj;
+
+    const project = {
+      type: type as ProjectType,
+      name: name as string,
+      id: projectID as string,
+      flows: new Map(),
+      imports: new Map(),
+    };
+
+    Object.entries(flows ?? {}).reduce((flows, item) => {
+      const [id, flow] = item;
+
+      flows.set(id, Flow.parseGraph(flow));
+
+      return flows;
+    }, project.flows);
+
+    Object.entries(imports ?? {}).reduce((imports, item) => {
+      const [ns, def] = item;
+
+      imports.set(ns, ImportDefinition.parseJSON(ns, def));
+
+      return imports;
+    }, project.imports);
+
+    return project;
+  },
+
+  toObject(project: FlowProject): JSONObject {
+    const { type = "project", id, name, flows, imports } = project;
+
+    return JSONObject.clean({
+      type,
+      id,
+      name,
+
+      flows: Array.from(flows).reduce((flows, [flowID, flow]) => {
+        flows[flowID] = Flow.toObject(flow);
+        return flows;
+      }, {} as JSONObject),
+
+      imports: Array.from(imports).reduce((imports, [ns, def]) => {
+        imports[ns] = def.toJSON();
+        return imports;
+      }, {} as JSONObject)
+    });
+  },
+
+  emptyProject: Object.freeze({
+    type: "project",
+    id: "",
+    name: "",
+    flows: new Map([["root", Flow.emptyFlow]]),
+    imports: new Map(),
+  } as FlowProject),
+}
+/*
+
+  //
+  settings: Record<string, unknown>;
+}
+
 
 
 export interface ProjectInit<Graph extends GraphInit = GraphInit> {
   type: string;
 
-  projectID: string;
+  id: string;
 
   title: string;
 
@@ -14,28 +161,19 @@ export interface ProjectInit<Graph extends GraphInit = GraphInit> {
   imports: Map<string, ImportDefinition>;
 }
 
-export class Project implements ProjectInit<Graph> {
-  type: string;
-
-  projectID: string;
-
-  title: string;
-
-  flows: Map<string, Graph>;
-
-  imports: Map<string, ImportDefinition>;
+export class Project implements ProjectInfo {
 
   constructor(public readonly baseURL: string, project: ProjectInit) {
-    const { type, projectID, title, flows = new Map(), imports = new Map() } = project;
+    const { type, id, title, flows = new Map(), imports = new Map() } = project;
 
-    this.type = type;
-    this.projectID = projectID;
-    this.title = title;
+    this.type = type as ProjectType;
+    this.id = id;
+    this.name = title;
 
     this.flows = new Map(
       Array.from(flows.entries()).map(([flowID, flow]) => [
         flowID,
-        new Graph(this, flow),
+        new Flow(flow),
       ])
     );
 
@@ -45,9 +183,14 @@ export class Project implements ProjectInit<Graph> {
     ]))
   }
 
+  created?: Date|undefined;
+  updated?: Date|undefined;
+  visibility?: "private"|"public"|undefined;
+  state?: "draft"|"normal"|undefined;
+
   getRootFlow(
     mustExist = true
-  ): typeof mustExist extends true ? Graph : Graph | undefined {
+  ): typeof mustExist extends true ? Flow : Flow | undefined {
     const flow = Array.from(this.flows.values()).find((flow) => flow.type == "root");
 
     if (!flow && mustExist) {
@@ -57,12 +200,12 @@ export class Project implements ProjectInit<Graph> {
     return flow;
   }
 
-  createFlow(type: "root" | "flow", id: string, name: string): Graph {
+  createFlow(type: "root" | "flow", id: string, name: string): Flow {
     if (type == "root" && this.getRootFlow(false)) {
       throw new Error("");
     }
 
-    const flow = new Graph(this, {
+    const flow = new Flow({
       type,
       name,
       nodes: new Map(),
@@ -84,7 +227,7 @@ export class Project implements ProjectInit<Graph> {
     const project = new Project(baseURL, {
       type: type as string,
       title: title as string,
-      projectID: projectID as string,
+      id: projectID as string,
       flows: new Map(),
       imports: new Map(),
     });
@@ -92,7 +235,7 @@ export class Project implements ProjectInit<Graph> {
     Object.entries(flows ?? {}).reduce((flows, item) => {
       const [id, flow] = item;
 
-      flows.set(id, Graph.parseGraph(project, flow));
+      flows.set(id, Flow.parseGraph(flow));
 
       return flows;
     }, project.flows);
@@ -109,12 +252,12 @@ export class Project implements ProjectInit<Graph> {
   }
 
   toObject(): JSONObject {
-    const { type = "project", projectID, title, flows, imports } = this;
+    const { type = "project", id, name, flows, imports } = this;
 
-    return JSONObject.removeNullOrUndefined({
+    return JSONObject.clean({
       type,
-      projectID,
-      title,
+      id,
+      name,
 
       flows: Array.from(flows).reduce((flows, [flowID, flow]) => {
         flows[flowID] = flow.toObject();
@@ -138,9 +281,9 @@ export class Project implements ProjectInit<Graph> {
   });
   static emptyProject: ProjectInit = Object.freeze({
     type: "",
-    projectID: "",
+    id: "",
     title: "",
     flows: new Map([["root", Project.emptyFlow]]),
     imports: new Map(),
   });
-}
+}*/

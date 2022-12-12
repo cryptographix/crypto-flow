@@ -1,23 +1,31 @@
-import { IFByteArrayBinaryOperator} from './bytearray-ops/binary-operator-interface.ts'
-import { XORBytes } from './bytearray-ops/xor.ts';
-import { UnsignedWrappingADDBytes } from './bytearray-ops/add.ts';
-import { ByteArray } from './data-in-out/bytearray.ts'
+import { FlowBlockDef, CodeBlockDef } from './system/system.ts';
+import { IFByteArrayBinaryOperator } from './bytearray-ops/binary-operator-interface.ts'
+import XORBytes from './bytearray-ops/xor.ts';
+import ADDBytes from './bytearray-ops/add.ts';
+import ByteArray from './system/bytearray.ts'
 
 import { PackageDefinition } from "./deps.ts";
 
 export const packageDefinition: PackageDefinition = {
-  "namespace": "org.cryptographix.core",
+  "namespace": "org.cryptographix",
 
   packages: {
-    "byte-ops": {
+    "core.byte-ops": {
       interfaces: {
         "IFByteArrayBinaryOperator": IFByteArrayBinaryOperator,
       },
       blocks: {
         "XORBytes": XORBytes,
-        "ADDBytes": UnsignedWrappingADDBytes,
-        "ByteArray": ByteArray,
+        "ADDBytes": ADDBytes,
       }
     },
+    "system": {
+
+      blocks: {
+        "ByteArray": ByteArray,
+        "Code": CodeBlockDef,
+        "Flow": FlowBlockDef,
+      },
+    }
   }
 };

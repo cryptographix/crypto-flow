@@ -9,7 +9,7 @@ export interface IFByteArrayBinaryOperator {
 export const IFByteArrayBinaryOperator: InterfaceDefinition = {
   name: "IFByteArrayBinaryOperator",
 
-  propertyDefinitions: {
+  properties: {
     op1: {
       dataType: "u8[]",
       accessors: "set"

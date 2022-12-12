@@ -4,7 +4,7 @@
 
 const IFBlockCipher = {
     name: "IFBlockCipher",
-    propertyDefinitions: {
+    properties: {
         direction: {
             accessors: "both",
             dataType: "enum",
@@ -86,8 +86,8 @@ const CBCBlockCipherMode = {
     ctor: CBCCipherModeBlock,
     name: "CBC Block Cipher Mode",
     category: "crypto",
-    propertyDefinitions: {
-        ...IFBlockCipher.propertyDefinitions,
+    properties: {
+        ...IFBlockCipher.properties,
         blockCipher: {
             dataType: "slot",
             accessors: "both"
@@ -148,17 +148,17 @@ const AESBlockCipher = {
     ctor: AESBlockCipherBlock,
     name: "AES Block Cipher",
     category: "crypto",
-    propertyDefinitions: {
-        ...IFBlockCipher.propertyDefinitions,
+    properties: {
+        ...IFBlockCipher.properties,
         key: {
-            ...IFBlockCipher.propertyDefinitions.key,
+            ...IFBlockCipher.properties.key,
             dataType: "u8[]",
             minLength: 16,
             maxLength: 32,
             lengthStep: 8
         },
         blockSize: {
-            ...IFBlockCipher.propertyDefinitions.blockSize,
+            ...IFBlockCipher.properties.blockSize,
             default: 128,
             constant: true
         }
@@ -1217,17 +1217,17 @@ const DESBlockCipher = {
     ctor: DESBlockCipherBlock,
     name: "DES Block Cipher",
     category: "crypto",
-    propertyDefinitions: {
-        ...IFBlockCipher.propertyDefinitions,
+    properties: {
+        ...IFBlockCipher.properties,
         key: {
-            ...IFBlockCipher.propertyDefinitions.key,
+            ...IFBlockCipher.properties.key,
             dataType: "u8[]",
             minLength: 8,
             maxLength: 24,
             lengthStep: 8
         },
         blockSize: {
-            ...IFBlockCipher.propertyDefinitions.blockSize,
+            ...IFBlockCipher.properties.blockSize,
             default: 64,
             constant: true
         }
@@ -1236,7 +1236,7 @@ const DESBlockCipher = {
 export { DESBlockCipher as DESBlockCipher };
 const IFCryptographicHash = {
     name: "IFCryptographicHash",
-    propertyDefinitions: {
+    properties: {
         dataIn: {
             accessors: "set",
             dataType: "u8[]"
@@ -1254,7 +1254,7 @@ const IFCryptographicHash = {
 export { IFCryptographicHash as IFCryptographicHash };
 const IFSecureRandom = {
     name: "ISecureRandom",
-    propertyDefinitions: {
+    properties: {
         randomData: {
             accessors: "get",
             dataType: "u8[]"
@@ -1281,16 +1281,16 @@ const SHA1Hash = {
     ctor: SHA1HashBlock,
     name: "SHA-1",
     category: "cryptography",
-    propertyDefinitions: {
-        ...IFCryptographicHash.propertyDefinitions,
+    properties: {
+        ...IFCryptographicHash.properties,
         hashValue: {
-            ...IFCryptographicHash.propertyDefinitions.hashValue,
+            ...IFCryptographicHash.properties.hashValue,
             dataType: "u8[]",
             minLength: 20,
             maxLength: 20
         },
         hashSize: {
-            ...IFCryptographicHash.propertyDefinitions.hashSize,
+            ...IFCryptographicHash.properties.hashSize,
             default: 160,
             constant: true
         }

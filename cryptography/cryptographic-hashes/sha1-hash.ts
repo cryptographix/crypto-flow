@@ -32,16 +32,16 @@ export const SHA1Hash: BlockDefinition<SHA1HashBlock> = {
   name: "SHA-1",
   category: "cryptography",
 
-  propertyDefinitions: {
-    ...IFCryptographicHash.propertyDefinitions,
+  properties: {
+    ...IFCryptographicHash.properties,
     hashValue: {
-      ...IFCryptographicHash.propertyDefinitions.hashValue,
+      ...IFCryptographicHash.properties.hashValue,
       dataType: "u8[]",
       minLength: 20,
       maxLength: 20,
     },
     hashSizeBits: {
-      ...IFCryptographicHash.propertyDefinitions.hashSizeBits,
+      ...IFCryptographicHash.properties.hashSizeBits,
       default: 160,
       constant: true,
     },

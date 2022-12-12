@@ -1,5 +1,5 @@
 import { BlockContext } from "./block-context.ts";
-import { Node, LinkInit, PortInit, Block } from "../mod.ts";
+import { Node, Link, Port, Block } from "../mod.ts";
 import { AnyInterface, AnyObject, PropertyValues } from "../deps.ts";
 import { AbstractBlock } from "./abstract-block.ts";
 
@@ -13,7 +13,7 @@ import { AbstractBlock } from "./abstract-block.ts";
  * 
  * 
  */
-export class NodeContext<IF = AnyObject, BLK extends Block<IF> = AbstractBlock<IF>&IF> {
+export class NodeContext<IF extends AnyInterface = AnyObject, BLK extends Block<IF> = AbstractBlock<IF> & IF> {
   #blockContext?: BlockContext<BLK>;
   #outputConnections = new Map<string, Connection[]>();
   #loading: Promise<void> | null;
@@ -86,8 +86,8 @@ export class NodeContext<IF = AnyObject, BLK extends Block<IF> = AbstractBlock<I
 
 export class Connection {
   constructor(
-    public port: PortInit,
-    public link: LinkInit,
+    public port: Port,
+    public link: Link,
     public targetNode: NodeContext
   ) {
     // ...

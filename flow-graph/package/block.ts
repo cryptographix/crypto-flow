@@ -2,7 +2,7 @@ import {
   PropertyDefinition,
   AnyInterface,
   InterfaceDefinition,
-PropertyValues,
+  PropertyValues,
 } from "../deps.ts";
 
 /**
@@ -49,12 +49,12 @@ export type BlockPropertiesOf<BLK> = {
 
 export type PartialBlockPropertiesOf<BLK> = Partial<BlockPropertiesOf<BLK>>;
 
-export type BlockPropertyDefinitions<BLK> = {
+export type Blockproperties<BLK> = {
   [K in keyof BlockPropertiesOf<BLK>]-?: BlockPropertyDefinition<BLK[K]>;
 };
 
 // deno-lint-ignore no-empty-interface
-export interface BlockInterfaceDefinition<BLK extends AnyInterface = AnyInterface> extends InterfaceDefinition<BlockPropertiesOf<BLK>, BlockPropertyDefinitions<BLK>> {
+export interface BlockInterfaceDefinition<BLK extends AnyInterface = AnyInterface> extends InterfaceDefinition<BlockPropertiesOf<BLK>, Blockproperties<BLK>> {
 }
 
 export interface BlockHelper<BLK extends AnyBlock> {
@@ -62,7 +62,7 @@ export interface BlockHelper<BLK extends AnyBlock> {
   readonly blockDefinition: Omit<BlockDefinition<BLK>, 'ctor'>;
 
   //
-  readonly propertyDefinitions: BlockPropertyDefinitions<BLK>;
+  readonly properties: Blockproperties<BLK>;
 
   //
   init(initData: PartialBlockPropertiesOf<BLK>): void;
@@ -120,7 +120,7 @@ export interface HasBlockHelper<IF extends AnyInterface = AnyInterface> {
   /**
    * Auto-injected Helper object
    */
-   $helper: BlockHelper<Block<IF>>;
+  $helper: BlockHelper<Block<IF>>;
 }
 
 export type AnyBlock = Block<AnyInterface>;
@@ -133,18 +133,14 @@ export type BlockConstructor<BLK extends AnyBlock> = {
 };
 
 
-export type BlockType =
-  | "none"
-  | "flow"
-  | "block"
-  | "code"
-  | "input"
-  | "output";
+export type BlockType ="flow" | "block" | "code";
+
+export type BlockGroup = "trigger" | "input" | "output" | "transform";
 
 /**
  * BlockDefinition
  */
-export interface BlockDefinition<BLK extends AnyBlock = AnyBlock> extends BlockInterfaceDefinition<BLK> {//BlockPropertiesOf<BLK>, BlockPropertyDefinitions<BLK>> {
+export interface BlockDefinition<BLK extends AnyBlock = AnyBlock> extends BlockInterfaceDefinition<BLK> {
   //
   type: BlockType;
 
@@ -153,9 +149,11 @@ export interface BlockDefinition<BLK extends AnyBlock = AnyBlock> extends BlockI
 
   category?: string;
 
-  meta?: {
-    iconURL?: string;
-  };
+  group?: BlockGroup;
 
-  propertyDefinitions: BlockPropertyDefinitions<BLK>;
+  icon?: string;
+
+  documentationUrl?: string;
+
+  properties: Blockproperties<BLK>;
 }

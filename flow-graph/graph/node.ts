@@ -1,28 +1,29 @@
 import { JSONObject, JSONValue } from "../deps.ts";
-import { Graph } from "./graph.ts";
-import { Port, PortInit } from "./port.ts";
+import { Port } from "./port.ts";
 
 export type NodeType =
-  | "none"
   | "root"
   | "flow"
   | "block"
   | "code"
-  | "input"
-  | "output";
+;
 
 export interface NodeViewInfo {
-  // x-offset, relative to enclosing flow
-  x?: number;
+  pos: {
+    // x-offset, relative to enclosing flow
+    x: number;
 
-  // y-offset, relative to enclosing flow
-  y?: number;
+    // y-offset, relative to enclosing flow
+    y: number;
+  },
 
-  // width
-  w?: number;
+  size: {
+    // width
+    x: number;
 
-  // height
-  h?: number;
+    // height
+    y: number;
+  },
 
   // rotation, 0/90/180/-90/270
   r?: number;
@@ -31,88 +32,104 @@ export interface NodeViewInfo {
   color?: string;
 }
 
-export interface NodeBlockInfo {
-  // namespaced block-name, aka blockID
-  name?: string,
+export const NodeViewInfo = {
+  get zero(): NodeViewInfo {
+    // clone
+    return {
+      pos: { ...{ x: 0, y: 0 } },
+      size: { ...{ x: 0, y: 0 } },
+    }
+  },
 
-  // for "code" types, 
-  code?: string;
+  parseViewInfo(value: JSONValue): NodeViewInfo {
+    const view = JSONValue.asObject<JSONObject>(value, {});
+
+    return {
+      pos: {
+        x: Math.round(JSONValue.asNumber(view.x, 0)),
+        y: Math.round(JSONValue.asNumber(view.y, 0)),
+      },
+      size: {
+        x: Math.round(JSONValue.asNumber(view.w, 0)),
+        y: Math.round(JSONValue.asNumber(view.h, 0)),
+      },
+      r: JSONValue.asNumber(view.r, 0),
+      color: JSONValue.asString(view.color, ""),
+    };
+  },
+
+  viewInfoToObject(view: NodeViewInfo): JSONObject {
+    const obj = JSONObject.clean({
+      x: view.pos.x,
+      y: view.pos.y,
+      w: view.size.x,
+      h: view.size.y,
+      r: view.r,
+      color: view.color,
+    });
+
+    if (obj.x != 0 || obj.y != 0 || obj.w != 0 || obj.h != 0 || obj.r != 0 || obj.color == "")
+      return obj;
+    else
+      return {};
+  },
+
 }
 
-export interface NodeInit<Port extends PortInit = PortInit> {
+export interface NodeBlockInfo {
+  // [type="block"]: namespaced block-name, aka blockID
+  name?: string,
+
+  // [type="code"]: js function to execute 
+  code?: string;
+
+  // [type="flow"]: flow ID within project
+  flowID?: string;
+
+  // [type="flow"]: inline flow 
+  //flow?: GraphInit;
+}
+
+export interface Node {
   type: NodeType;
 
   name?: string;
 
   ports: Map<string, Port>;
-
-  block?: NodeBlockInfo;
-
-  view?: NodeViewInfo;
-}
-
-export class Node {
-  type: NodeType;
-
-  name?: string;
 
   block: NodeBlockInfo;
 
   view: NodeViewInfo;
+}
 
-  ports: Map<string, Port>;
-
-  constructor(public graph: Graph | null, node: NodeInit = Node.emptyNode) {
-    const { type, name, block = {}, ports, view = {} } = node;
-
-    this.type = type;
-    this.name = name;
-    this.block = block;
-    this.view = view;
-
-    this.ports = new Map(
-      Object.entries(ports).map(([_portID, port]) => [
-        _portID,
-        new Port(this, port),
-      ])
-    );
-  }
-
-  static parseViewInfo(value: JSONValue): NodeViewInfo {
-    const view = JSONValue.asObject<NodeViewInfo>(value, {});
-
-    view.x = Math.round(view.x ?? 0);
-    view.y = Math.round(view.y ?? 0);
-    return view;
-  }
-
-  static parseBlockInfo(value: JSONValue): NodeBlockInfo {
+export const Node = {
+  parseBlockInfo(value: JSONValue): NodeBlockInfo {
     return JSONValue.asObject<NodeBlockInfo>(value, {});
-  }
+  },
 
-  static parseNode(graph: Graph | null, obj: JSONObject): Node {
+  parseNode(obj: JSONObject): Node {
     const { type, name, view, block } = obj;
 
-    const node = new Node(graph, {
+    const node = {
       type: JSONValue.asString(type) as NodeType,
       name: JSONValue.asString(name),
       block: Node.parseBlockInfo(block),
-      view: Node.parseViewInfo(view),
+      view: NodeViewInfo.parseViewInfo(view),
       ports: new Map<string, Port>(),
-    });
+    };
 
     for (const [portID, port] of Object.entries((obj.ports as JSONObject[]) ?? {})) {
-      node.ports.set(portID, Port.parsePort(node, port));
+      node.ports.set(portID, Port.parsePort(port));
     }
 
     return node;
-  }
+  },
 
-  toObject(): JSONObject {
-    const { type, name, block, view } = this;
+  toObject(node: Node): JSONObject {
+    const { type, name, block, view, ports } = node;
 
-    const ports = Array.from(this.ports).reduce((ports, [portID, port]) => {
-      ports[portID] = port.toObject();
+    const portsObj = Array.from(ports).reduce((ports, [portID, port]) => {
+      ports[portID] = Port.toObject(port);
 
       return ports;
     }, {} as JSONObject);
@@ -121,14 +138,16 @@ export class Node {
       type,
       name,
       block: JSONObject.clean({ ...block }),
-      view: JSONObject.clean({ ...view }),
-      ports
+      view: view && NodeViewInfo.viewInfoToObject(view),
+      ports: portsObj
     });
-  }
+  },
 
-  static readonly emptyNode: NodeInit = Object.freeze({
-    type: "none",
+  emptyNode: Object.freeze({
+    type: "flow",
     id: "",
     ports: new Map(),
-  });
+    view: {} as NodeViewInfo,
+    block: {} as NodeBlockInfo,
+  } as Node),
 }

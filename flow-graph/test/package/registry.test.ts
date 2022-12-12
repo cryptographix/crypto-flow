@@ -72,12 +72,12 @@ test("Registry: list categories", () => {
     namespace: "org.bananas",
     blocks: {
       "banana-split": { 
-        type: "none",
+        type: "block",
         name: "banana-split",
         category: "splitters",
         // deno-lint-ignore no-explicit-any
         ctor: class { $helper!: any; run() {} },
-        propertyDefinitions: {}
+        properties: {}
        }
     }
   });

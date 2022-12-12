@@ -1,7 +1,7 @@
 import {
   Block,
   BlockHelper,
-  BlockPropertyDefinitions,
+  Blockproperties,
   PartialBlockPropertiesOf,
   BlockFactory,
   BlockInstanceForIF,
@@ -44,7 +44,7 @@ export class BlockContext<IF extends AnyInterface> {
 
   get block(): BlockInstanceForIF<IF> { return this.#block; }
   get blockHelper(): BlockHelper<Block<IF>> { return this.#blockHelper; }
-  get propertyDefinitions() { return this.#blockHelper.propertyDefinitions; }
+  get properties() { return this.#blockHelper.properties; }
 
   resetInputs() {
     this.#blockHelper.resetInputs();
@@ -110,20 +110,12 @@ export class BlockContext<IF extends AnyInterface> {
         /*const blockDefinition: BlockDefinition<Block<IF>> = {
           type: "flow",
           ctor: class extends AbstractBlock { run() { } },
-          propertyDefinitions: {},
+          properties: {},
           name: node.name ?? node.id,
         }
 
         return Promise.resolve(BlockContext.for("", blockDefinition));*/
 
-        break;
-      }
-      case "input": {
-        // noop
-        break;
-      }
-      case "output": {
-        // noop
         break;
       }
       default: {
@@ -138,7 +130,7 @@ export class BlockContext<IF extends AnyInterface> {
     return Promise.resolve(bc as BlockContext<IF>);
   }
 
-  static async forBlockName<IF>(blockName: string) {
+  static async forBlockName<IF extends AnyInterface>(blockName: string) {
     const factory = new BlockFactory<Block<IF>>("block", blockName);
 
     const block = await factory.createInstance();
@@ -148,16 +140,16 @@ export class BlockContext<IF extends AnyInterface> {
   static async fromCodeNode<IF extends AnyInterface>(node: Node): Promise<BlockContext<IF>> {
     const code = node.block!.code as string;
 
-    const propertyDefinitions = {} as BlockPropertyDefinitions<IF>;
+    const properties = {} as Blockproperties<IF>;
 
     node.ports.forEach((port, key) => {
-      propertyDefinitions[key as keyof BlockPropertyDefinitions<IF>] = {
+      properties[key as keyof Blockproperties<IF>] = {
         dataType: port.dataType as PropertyDataTypes,
         accessors: port.direction == "in" ? "set" : "get",
-      } as BlockPropertyDefinitions<IF>[keyof BlockPropertyDefinitions<IF>];
+      } as Blockproperties<IF>[keyof Blockproperties<IF>];
     });
 
-    const factory = new BlockFactory<Block<IF>>("code", "", code, propertyDefinitions);
+    const factory = new BlockFactory<Block<IF>>("code", "", code, properties);
 
     const block = await factory.createInstance()
 

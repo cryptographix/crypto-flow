@@ -14,7 +14,9 @@ export interface InterfaceDefinition<
 
   description?: string;
 
-  readonly propertyDefinitions: PropertyTypes;
+  version?: number;
+
+  readonly properties: PropertyTypes;
 }
 
 // export type InterfaceSymbol<IF = AnyInterface> = InterfaceInfo<IF>;

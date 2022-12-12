@@ -1,5 +1,5 @@
-import { Connection } from "../mod.ts";
-import { Graph } from "../mod.ts";
+import { Connection, Node } from "../mod.ts";
+import { Flow } from "../mod.ts";
 import { NodeContext } from "./node-context.ts";
 
 export class FlowContext extends NodeContext {
@@ -7,7 +7,7 @@ export class FlowContext extends NodeContext {
 
   #nodes = new Map<string, NodeContext>();
 
-  #buildNetwork(flow: Graph) {
+  #buildNetwork(flow: Flow) {
     // reset
     this.#resetNetwork();
 
@@ -65,8 +65,8 @@ export class FlowContext extends NodeContext {
   /**
    * 
    */
-  constructor(public flowID: string, public readonly flow: Graph) {
-    super(flowID, flow);
+  constructor(public flowID: string, public readonly flow: Flow) {
+    super(flowID, flow as Node);
   }
 
   get nodes() { return this.#nodes; }
@@ -109,13 +109,13 @@ export class FlowContext extends NodeContext {
       if (n2 == undefined)
         return n1;
 
-      if ((n1.node.view.x ?? 0) < (n2.node.view.x ?? 0)) 
+      if ((n1.node.view.pos.x ?? 0) < (n2.node.view.pos.x ?? 0)) 
         return n1;
 
-      if ((n1.node.view.x ?? 0) > (n2.node.view.x ?? 0)) 
+      if ((n1.node.view.pos.x ?? 0) > (n2.node.view.pos.x ?? 0)) 
         return n2;
 
-      return ((n1.node.view.y ?? 0) < (n2.node.view.y ?? 0)) ? n1 : n2;
+      return ((n1.node.view.pos.y ?? 0) < (n2.node.view.pos.y ?? 0)) ? n1 : n2;
     }
 
     let ready: NodeContext | undefined = undefined;

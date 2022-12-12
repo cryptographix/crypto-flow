@@ -1,14 +1,11 @@
 ## Blocks
-A Block is a data processing element that transforms a set of data inputs into a different set of data values that are output from the block. Blocks are interconnected, receiving and sending data to/from other blocks.
+A Block is a data processing element that transforms data values input to the block into data values output from the block. Blocks are interconnected within Flows, receiving and sending data to/from other blocks.
 
 Blocks have data Ports through which they receive or send data, and in essence, a block processes data from one or more input Ports, making the results available on one or more output Ports. Output Ports that are connected to Input Ports of other blocks transfer the data to that block. Processing blocks normally execute asynchronously whenever all required inputs have received values, thus causing data to *flow* through the network on interconnected blocks.
 
-A Block may have a special trigger Port, which when activated causes processing to be performed, thus causing data to move synchronously through the block. 
-
+/*A Block may have a special trigger Port, which when activated causes processing to be performed, thus causing data to move synchronously through the block. */
 
 A Block will execute when all required Inputs have received a valid value. After execution terminates, the result of processing is made available via the Block's Outputs. Any further changes to the Inputs will trigger new execution cycles, generating new outputs correspondingly.
-
-
 
 ## Inputs and Outputs
 Each Input and Output has a defined shape (data-type, limits, optionality, ...) and associated metadata (name, description, ...).
@@ -40,12 +37,13 @@ BlockRegistryEntry {
 | item |  description |
 |-------------|---|
   `namespace` | Optional namespace for Block
-  `name` | Unique Block name within namespace
-  `label` | User-friendly label
-  `category` | Blocks are grouped together by category
-  `colour` | Optional color 
-  `icon` | Optional link to Block icon, may be an absolute URL or relative to Module path
+  `id` | Unique Block name within namespace
+  `name` | User-friendly label
   `description` | Block documentation in Markdown format 
+  `category` | Blocks are listed together by category
+  `group` | Major grouping, trigger, input, output, transform
+  `color` | Optional color 
+  `icon` | Optional link to Block icon, may be an absolute URL or relative to Module path
   `properties` | List of named block properties (in/out/cfg), including type, data-type, optionality, default values, ... 
 
 ```

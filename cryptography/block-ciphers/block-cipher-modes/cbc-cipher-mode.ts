@@ -90,8 +90,8 @@ export const CBCBlockCipherMode: BlockDefinition<CBCCipherModeBlock> = {
   name: "CBC Block Cipher Mode",
   category: "crypto",
 
-  propertyDefinitions: {
-    ...IFBlockCipher.propertyDefinitions,
+  properties: {
+    ...IFBlockCipher.properties,
     blockCipher: {
       dataType: "slot",
       accessors: "both",

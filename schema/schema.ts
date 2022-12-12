@@ -43,7 +43,7 @@ export abstract class Schema {
   /**
    *
    */
-  static getSchemaForClass<TO, TSchema extends ISchema>(
+  static getSchemaForClass<TO extends AnyInterface, TSchema extends ISchema>(
     target: Constructable<TO>
   ): TSchema {
     const schema = schemaStore.ensure<TSchema>(target);

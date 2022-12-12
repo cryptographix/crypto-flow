@@ -14,7 +14,7 @@ export interface IFEncryptDecrypt {
 
 export const IFEncryptionAlgorithm: InterfaceDefinition<IFEncryptDecrypt> = {
   name: "IFEncryptionAlgorithm",
-  propertyDefinitions: {
+  properties: {
     key: { accessors: "set", dataType: "u8[]" },
     encrypt: { accessors: "set", dataType: "string", default: "encrypt" },
     plainText: { accessors: "set", dataType: "u8[]" },

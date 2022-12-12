@@ -1,12 +1,12 @@
-import { FlowContext, Project, registry, AnyInterface, PropertyValues, AnyObject } from "../deps.ts";
+import { FlowContext, FlowProject, registry, AnyInterface, PropertyValues, AnyObject } from "../deps.ts";
 import { test, assertEquals } from "../test-harness.ts";
 
 import impProject from "../data/project-1.json" assert { type: "json"};
 
 test("Runner: Trigger sequence", async () => {
-  const project = Project.parseProject(Deno.cwd(), impProject);
+  const project = FlowProject.parseProject(Deno.cwd(), impProject);
 
-  const runner = new FlowContext("root", project.getRootFlow(true)!);
+  const runner = new FlowContext("root", FlowProject.getRootFlow(project)!);
 
   registry.registerPackage((await import("../data/test-package-1.ts")).packageDefinition);
 

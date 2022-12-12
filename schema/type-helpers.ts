@@ -152,7 +152,7 @@ export interface JSONObject {
 
 export const JSONObject = {
   ///
-  removeNullOrUndefined(obj: { [x: string]: JSONValue | undefined }): JSONObject {
+  xremoveNullOrUndefined(obj: { [x: string]: JSONValue | undefined }): JSONObject {
     for (const x in obj) {
       if (obj[x] === undefined || obj[x] === null)
         delete obj[x];

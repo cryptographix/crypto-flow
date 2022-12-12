@@ -86,17 +86,17 @@ export const AESBlockCipher: BlockDefinition<AESBlockCipherBlock> = {
   name: "AES Block Cipher",
   category: "crypto",
 
-  propertyDefinitions: {
-    ...IFBlockCipher.propertyDefinitions,
+  properties: {
+    ...IFBlockCipher.properties,
     key: {
-      ...IFBlockCipher.propertyDefinitions.key,
+      ...IFBlockCipher.properties.key,
       dataType: "u8[]",
       minLength: 16,
       maxLength: 32,
       lengthStep: 8,
     },
     blockSize: {
-      ...IFBlockCipher.propertyDefinitions.blockSize,
+      ...IFBlockCipher.properties.blockSize,
       default: 128,
       constant: true,
     },

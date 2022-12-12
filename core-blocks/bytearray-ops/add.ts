@@ -1,13 +1,15 @@
-import { Block, BlockDefinition, BlockHelper } from "../deps.ts";
+import { Block, BlockDefinition } from "../deps.ts";
 import { IFByteArrayBinaryOperator } from "./binary-operator-interface.ts";
 
 class UnsignedWrappingADDBlock
   implements Block<IFByteArrayBinaryOperator>, IFByteArrayBinaryOperator {
   //
-  $helper!: BlockHelper<UnsignedWrappingADDBlock>;
-
   op1!: Uint8Array;
+
+  //
   op2!: Uint8Array;
+
+  //
   result!: Uint8Array;
 
   run(): void {
@@ -28,14 +30,14 @@ class UnsignedWrappingADDBlock
   }
 }
 
-export const UnsignedWrappingADDBytes: BlockDefinition<UnsignedWrappingADDBlock> = {
+export default {
   type: "block",
   ctor: UnsignedWrappingADDBlock,
   name: "ADD Bytes",
   description: "Wrapping unsigned byte-array addition",
   category: "core-ops",
 
-  propertyDefinitions: {
+  properties: {
     op1: {
       dataType: "u8[]",
       accessors: "set"
@@ -49,4 +51,4 @@ export const UnsignedWrappingADDBytes: BlockDefinition<UnsignedWrappingADDBlock>
       accessors: "get"
     },
   },
-};
+} as BlockDefinition<UnsignedWrappingADDBlock>;

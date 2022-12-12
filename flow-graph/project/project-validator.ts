@@ -1,13 +1,13 @@
-import { Graph, Node, PortInit } from '../mod.ts';
-import { Project } from './project.ts'
+import { Flow, Node, Port } from '../mod.ts';
+import { FlowProject } from './project.ts'
 
 export type AnyFlowError = InvalidFlowError;
 
 export type ValidationContext = {
-  project: Project;
-  flow?: Graph;
+  project: FlowProject;
+  flow?: Flow;
   node?: Node;
-  port?: PortInit;
+  port?: Port;
 };
 
 export interface InvalidFlowError extends ValidationContext {
@@ -16,7 +16,7 @@ export interface InvalidFlowError extends ValidationContext {
   message: string;
 }
 
-export function checkProject(project: Project): AnyFlowError[] {
+export function checkProject(project: FlowProject): AnyFlowError[] {
   const context: ValidationContext = {
     project,
   };
@@ -27,7 +27,7 @@ export function checkProject(project: Project): AnyFlowError[] {
 }
 
 export function checkFlow(
-  flow: Graph,
+  flow: Flow,
   context: ValidationContext,
 ): AnyFlowError[] {
   let errors: AnyFlowError[] = [];
@@ -63,7 +63,7 @@ export function checkNode(
 }
 
 export function checkPort(
-  port: PortInit,
+  port: Port,
   context: ValidationContext,
 ): AnyFlowError | AnyFlowError[] {
   let errors: AnyFlowError[] = [];

@@ -1,5 +1,5 @@
 import { AnyInterface, PropertiesOf, PropertyValue, PropertyValues, Schema, PropertyKey, PropertyInfos } from "../deps.ts";
-import { AnyBlock, Block, BlockConstructor, BlockDefinition, BlockHelper, BlockPropertiesOf, BlockPropertyDefinition, BlockPropertyDefinitions, BlockType, HasBlockHelper, PartialBlockPropertiesOf, Port, registry } from "../mod.ts";
+import { AnyBlock, Block, BlockConstructor, BlockDefinition, BlockHelper, BlockPropertiesOf, BlockPropertyDefinition, Blockproperties, BlockType, HasBlockHelper, PartialBlockPropertiesOf, Port, registry } from "../mod.ts";
 
 type ExtractBlockIF<BLK extends AnyBlock> = BLK extends Block<infer IF> ? IF : never;
 
@@ -15,25 +15,25 @@ export class BlockFactory<BLK extends AnyBlock> {
 
   blockDefinition: Promise<BlockDefinition<BLK>>;
 
-  constructor(type: "none", blockID: string, blockDefinition: BlockDefinition<BLK>)
+  constructor(type: undefined, blockID: string, blockDefinition: BlockDefinition<BLK>)
   constructor(type: "block", blockID: string)
-  constructor(type: "code", blockID: string, code: string, propertyDefinitions: BlockPropertyDefinitions<BLK>)
-  constructor(public blockType: BlockType, public readonly blockID: string, codeOrDef?: string | BlockDefinition<BLK>, propertyDefinitions?: BlockPropertyDefinitions<BLK>) {
-    switch (blockType) {
-      case "none": {
-        this.blockDefinition = Promise.resolve(codeOrDef as BlockDefinition<BLK>);
-        break;
-      }
+  constructor(type: "code", blockID: string, code: string, properties: Blockproperties<BLK>)
+  constructor(public blockType: BlockType | undefined, public readonly blockID: string, codeOrDef?: string | BlockDefinition<BLK>, properties?: Blockproperties<BLK>) {
+    if (blockType == undefined) {
+      this.blockDefinition = Promise.resolve(codeOrDef as BlockDefinition<BLK>);
+    }
+    else {
+      switch (blockType) {
+        case "code": {
+          this.blockDefinition = BlockFactory.buildCodeBlock(codeOrDef as string, properties ?? {} as Blockproperties<BLK>);
+          break;
+        }
 
-      case "code": {
-        this.blockDefinition = BlockFactory.buildCodeBlock(codeOrDef as string, propertyDefinitions ?? {} as BlockPropertyDefinitions<BLK>);
-        break;
-      }
-
-      case "block":
-      default: {
-        this.blockDefinition = Promise.resolve(registry.getBlockInfo<BLK>(this.blockID));
-        break;
+        case "block":
+        default: {
+          this.blockDefinition = Promise.resolve(registry.getBlockInfo<BLK>(this.blockID));
+          break;
+        }
       }
     }
   }
@@ -90,7 +90,7 @@ export class BlockFactory<BLK extends AnyBlock> {
     return block as unknown as BlockInstance<BLK>;
   }
 
-  static async buildCodeBlock<BLK extends AnyBlock>(code: string, propertyDefinitions: BlockPropertyDefinitions<BLK>): Promise<BlockDefinition<BLK>> {
+  static async buildCodeBlock<BLK extends AnyBlock>(code: string, properties: Blockproperties<BLK>): Promise<BlockDefinition<BLK>> {
     const url = "data:text/javascript," + code;
 
     const module = await import(url);
@@ -113,7 +113,7 @@ export class BlockFactory<BLK extends AnyBlock> {
         ctor: blockCtor,
         name: "code",
         category: "code",
-        propertyDefinitions
+        properties
       };
 
       return blockDefinition;
@@ -123,7 +123,7 @@ export class BlockFactory<BLK extends AnyBlock> {
   }
 
   static for<BLK extends AnyBlock>(blockDefinition: BlockDefinition<BLK>) {
-    return new BlockFactory<BLK>("none", blockDefinition.name, blockDefinition);
+    return new BlockFactory<BLK>(undefined, blockDefinition.name, blockDefinition);
   }
 
 }
@@ -134,17 +134,17 @@ export class BlockHelperImpl<BLK extends AnyBlock> implements BlockHelper<BLK>
 
   readonly blockDefinition: BlockDefinition<BLK>;
 
-  readonly propertyDefinitions!: BlockPropertyDefinitions<BLK>;
+  readonly properties!: Blockproperties<BLK>;
 
   #inPropKeys: PropertyKey<BLK>[] = [];
 
   #outPropKeys: PropertyKey<BLK>[] = [];
 
   #setPropertyInfos() {
-    const propertyDefinitions = this.propertyDefinitions;
-    const blockPropertyKeys = Object.keys(propertyDefinitions) as PropertyKey<BLK>[];
+    const properties = this.properties;
+    const blockPropertyKeys = Object.keys(properties) as PropertyKey<BLK>[];
 
-    Object.values(propertyDefinitions as BlockPropertyDefinitions<BLK>).forEach((pd) => {
+    Object.values(properties as Blockproperties<BLK>).forEach((pd) => {
       const pdef = pd as BlockPropertyDefinition<BLK>;
 
       if (!pdef.kind) pdef.kind = "data";
@@ -154,11 +154,11 @@ export class BlockHelperImpl<BLK extends AnyBlock> implements BlockHelper<BLK>
     })
 
     this.#inPropKeys = blockPropertyKeys.filter(
-      (key) => ["in", "bidi"].includes(propertyDefinitions[key].direction ?? "none")
+      (key) => ["in", "bidi"].includes(properties[key].direction ?? "none")
     );
 
     this.#outPropKeys = blockPropertyKeys.filter(
-      (key) => ["out", "bidi"].includes(propertyDefinitions[key].direction ?? "none")
+      (key) => ["out", "bidi"].includes(properties[key].direction ?? "none")
     );
   }
   get block(): BLK { return this.#block.deref()!; }
@@ -168,8 +168,8 @@ export class BlockHelperImpl<BLK extends AnyBlock> implements BlockHelper<BLK>
 
     this.blockDefinition = blockDefinition;
 
-    this.propertyDefinitions = {
-      ...blockDefinition.propertyDefinitions
+    this.properties = {
+      ...blockDefinition.properties
     };
 
     // Cache property keys
@@ -219,7 +219,7 @@ export class BlockHelperImpl<BLK extends AnyBlock> implements BlockHelper<BLK>
       else {
         const block = this.block as unknown as PropertyValues<BLK>;
 
-        const propInfos: PropertyInfos<BLK> = this.propertyDefinitions as unknown as PropertyInfos<BLK>;
+        const propInfos: PropertyInfos<BLK> = this.properties as unknown as PropertyInfos<BLK>;
 
         // all required inputs present ...
         this.#ready = this.#inPropKeys.every((key) => {
@@ -266,7 +266,7 @@ export class BlockHelperImpl<BLK extends AnyBlock> implements BlockHelper<BLK>
     //   2. initial value from class
     //   3. "default" value from schema property.default
     //   4. the default for property type
-    for (const [key, propInfo] of Object.entries(this.propertyDefinitions)) {
+    for (const [key, propInfo] of Object.entries(this.properties)) {
       Schema.initPropertyFromPropertyType<PropertiesOf<BLK>>(
         propInfo as BlockPropertyDefinition<keyof PropertiesOf<BLK>>,
         block,
@@ -283,7 +283,7 @@ export class BlockHelperImpl<BLK extends AnyBlock> implements BlockHelper<BLK>
   setup(config: PartialBlockPropertiesOf<BLK>) {
     const block = this.block;
 
-    for (const [key, _propInfo] of Object.entries(this.propertyDefinitions)) {
+    for (const [key, _propInfo] of Object.entries(this.properties)) {
       const value = config[key as keyof BlockPropertiesOf<BLK>];
       if (value !== undefined) {
         // deno-lint-ignore no-explicit-any

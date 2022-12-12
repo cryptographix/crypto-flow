@@ -1,5 +1,5 @@
 import { FlowLogger } from './flow-tracer.ts';
-import { NodeContext, FlowContext, Graph, Project, Connection } from '../mod.ts';
+import { NodeContext, FlowContext, Flow, Connection } from '../mod.ts';
 
 export type RunMode = "continuous" | "single" | "step";
 
@@ -123,33 +123,39 @@ export class FlowRunner {
     }
   }
 
-  #setFlowState(newState: FlowState, node?: NodeContext) {
-    if (this.#flowState != newState || node) {
+  #setFlowState(newState: FlowState) {
+    if (this.#flowState != newState) {
       this.#flowState = newState;
 
-      //console.log("FlowState <=", newState)
+      console.log("FlowState <=", newState)
       this.flowObserver?.onFlowStateChange(newState);
     }
   }
 
   constructor(public readonly flowObserver?: FlowObserver) {
-    this.#flowContext = new FlowContext("root", new Graph());
+    this.#flowContext = new FlowContext("root", Flow.emptyFlow);
 
     this.#setFlowState("initialized");
   }
 
-  get runner() { return this.#flowContext; }
+  //get runner() { return this.#flowContext; }
 
-  async setupFlowRunner(mode: RunMode, flowID: string, flow: Graph) {
+  async setup(mode: RunMode, flowID: string, flow: Flow) {
     this.#runMode = mode;
+
+    // kill any existing flow
+    if ( this.#flowState != "none") {
+      await this.teardown();
+    }
 
     this.#flowContext = new FlowContext(flowID, flow);
 
-    await this.resetFlowRunner();
+    await this.#flowContext.setupNetwork();
+
+    this.#setFlowState("initialized");
   }
 
-
-  async resetFlowRunner() {
+  async resetFlow() {
     this.#nextReady = undefined;
 
     this.pauseFlow(true);
@@ -180,16 +186,6 @@ export class FlowRunner {
   get isContinuousMode() { return this.#runMode === "continuous"; }
   get isSingleMode() { return this.#runMode === "single"; }
   get isStepMode() { return this.#runMode === "step"; }
-
-  teardownFlowRunner() {
-    this.pauseFlow();
-
-    if (this.#flowContext) {
-      this.#flowContext.teardownNetwork();
-
-      this.#flowContext = new FlowContext("", new Graph(undefined, Project.emptyFlow));
-    }
-  }
 
   triggerFlow() {
     const triggerID = this.#flowContext.nextTriggerID();
@@ -265,5 +261,13 @@ export class FlowRunner {
     if (!this.isStepMode && !stop) {
       this.#setFlowState("paused");
     }
+  }
+
+  async teardown() {
+    await this.pauseFlow();
+
+    this.#flowContext.teardownNetwork();
+
+    this.#flowContext = new FlowContext("", Flow.emptyFlow);
   }
 }

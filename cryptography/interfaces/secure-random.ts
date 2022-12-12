@@ -6,7 +6,7 @@ export interface IFSecureRandom {
 
 export const IFSecureRandom: InterfaceDefinition = {
   name:   "ISecureRandom",
-  propertyDefinitions: {
+  properties: {
     randomData: { accessors: "get", dataType: "u8[]" },
   }
 }
